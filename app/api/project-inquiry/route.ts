@@ -265,52 +265,53 @@ export async function POST(request: NextRequest) {
       });
 
       if (resendError) {
-        console.error("[Resend Delivery Error]:", resendError);
-        return NextResponse.json(
-          { error: "Failed to send email notification. Please try again later." },
-          { status: 502 }
-        );
+        console.error("[Resend Admin Email Error]:", JSON.stringify(resendError, null, 2));
       }
 
-      // Send Client Confirmation Email
-      const { error: clientEmailError } = await resend.emails.send({
-        from: fromEmail,
-        to: [cleanEmail],
-        subject: "We've Received Your Project Inquiry | A2 Production",
-        html: `
-          <!DOCTYPE html>
-          <html>
-            <body style="font-family: Arial, sans-serif; background:#111; color:#fff; padding:40px;">
-              <div style="max-width:600px;margin:auto;background:#1b1b1b;padding:30px;border-radius:12px;">
-                <h2 style="color:#FF7A00;">Thank You, ${safeFullName}! 🎉</h2>
+      // Send Client Confirmation Email (best-effort, fails silently if unverified domain)
+      try {
+        const { error: clientEmailError } = await resend.emails.send({
+          from: fromEmail,
+          to: [cleanEmail],
+          subject: "We've Received Your Project Inquiry | A2 Production",
+          html: `
+            <!DOCTYPE html>
+            <html>
+              <body style="font-family: Arial, sans-serif; background:#111; color:#fff; padding:40px;">
+                <div style="max-width:600px;margin:auto;background:#1b1b1b;padding:30px;border-radius:12px;">
+                  <h2 style="color:#FF7A00;">Thank You, ${safeFullName}! 🎉</h2>
 
-                <p>We have successfully received your project inquiry.</p>
+                  <p>We have successfully received your project inquiry.</p>
 
-                <p>Our team will carefully review your requirements and contact you within the next 24 hours.</p>
+                  <p>Our team will carefully review your requirements and contact you within the next 24 hours.</p>
 
-                <hr style="border:none;border-top:1px solid #333;margin:25px 0;" />
+                  <hr style="border:none;border-top:1px solid #333;margin:25px 0;" />
 
-                <h3>Your Submission Summary</h3>
+                  <h3>Your Submission Summary</h3>
 
-                <p><strong>Business:</strong> ${safeBusinessName}</p>
-                <p><strong>Business Type:</strong> ${safeBusinessType}</p>
-                <p><strong>Email:</strong> ${safeEmail}</p>
-                <p><strong>Phone:</strong> ${safeCode} ${safePhone}</p>
+                  <p><strong>Business:</strong> ${safeBusinessName}</p>
+                  <p><strong>Business Type:</strong> ${safeBusinessType}</p>
+                  <p><strong>Email:</strong> ${safeEmail}</p>
+                  <p><strong>Phone:</strong> ${safeCode} ${safePhone}</p>
 
-                <br>
+                  <br>
 
-                <p>Thank you for choosing <strong>A2 Production</strong>.</p>
+                  <p>Thank you for choosing <strong>A2 Production</strong>.</p>
 
-                <p>Regards,<br><strong>A2 Production Team</strong></p>
-              </div>
-            </body>
-          </html>
-        `,
-      });
+                  <p>Regards,<br><strong>A2 Production Team</strong></p>
+                </div>
+              </body>
+            </html>
+          `,
+        });
 
-      if (clientEmailError) {
-        console.error("[Client Email Delivery Error]:", clientEmailError);
+        if (clientEmailError) {
+          console.error("[Resend Client Email Error]:", JSON.stringify(clientEmailError, null, 2));
+        }
+      } catch (clientErr) {
+        console.error("[Resend Client Exception]:", clientErr);
       }
+
     }
 
     return NextResponse.json({ success: true });
