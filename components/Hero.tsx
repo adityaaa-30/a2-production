@@ -12,6 +12,7 @@ export function Hero() {
   const headingRef = useRef<HTMLHeadingElement>(null);
   const introRef = useRef<HTMLDivElement>(null);
   const scrollCueRef = useRef<HTMLDivElement>(null);
+  const scenesRef = useRef<(HTMLDivElement | null)[]>([]);
 
   useGSAP(
     () => {
@@ -29,7 +30,7 @@ export function Hero() {
         tagName: "span",
       });
 
-      // --- Reduced motion: show everything instantly, no pin, no scrub ---
+      // --- Reduced motion fallback ---
       if (prefersReducedMotion) {
         gsap.set(heading, { opacity: 1 });
         gsap.set(split.chars ?? [], {
@@ -45,44 +46,59 @@ export function Hero() {
         return () => split.revert();
       }
 
-      // --- Entrance: mask-reveal the headline, then the supporting copy ---
-      const entrance = gsap.timeline({ delay: 0.35 });
+      // --- Entrance: Gravitational Pull (60 FPS GPU-accelerated) ---
+      const chars = split.chars ?? [];
+
+      // Promote character spans to dedicated GPU hardware layers
+      gsap.set(chars, {
+        willChange: "transform, opacity",
+        backfaceVisibility: "hidden",
+        display: "inline-block",
+      });
+
+      const entrance = gsap.timeline({ delay: 0.15 });
 
       entrance
         .set(heading, { opacity: 1 })
         .fromTo(
-          split.chars ?? [],
-          { yPercent: 130, rotateZ: 6, filter: "blur(14px)", opacity: 0 },
+          chars,
           {
+            opacity: 0,
+            scale: 1.8,
+            yPercent: -100,
+            rotateZ: (i: number) => (i % 2 === 0 ? -12 : 12),
+            transformOrigin: "50% 50%",
+          },
+          {
+            opacity: 1,
+            scale: 1,
             yPercent: 0,
             rotateZ: 0,
-            filter: "blur(0px)",
-            opacity: 1,
             duration: 1.1,
             ease: "power4.out",
-            stagger: { each: 0.014, from: "start" },
+            stagger: { each: 0.014, from: "center" },
+            clearProps: "willChange,backfaceVisibility",
           }
         )
         .fromTo(
           introRef.current,
-          { y: 24, opacity: 0, filter: "blur(6px)" },
+          { y: 24, opacity: 0 },
           {
             y: 0,
             opacity: 1,
-            filter: "blur(0px)",
-            duration: 0.9,
+            duration: 0.7,
             ease: "power3.out",
           },
-          "-=0.6"
+          "-=0.5"
         )
         .fromTo(
           scrollCueRef.current,
-          { y: -12, opacity: 0 },
-          { y: 0, opacity: 1, duration: 0.8, ease: "power2.out" },
-          "-=0.4"
+          { y: -10, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5, ease: "power2.out" },
+          "-=0.3"
         );
 
-      // --- Scroll-scrubbed cinematic playback ---
+      // --- Scroll-scrubbed video & scenes timeline ---
       video.pause();
 
       const mm = gsap.matchMedia();
@@ -94,63 +110,204 @@ export function Hero() {
             const { desktop } = context.conditions as { desktop: boolean };
 
             if (!desktop) {
-              // --- MOBILE ONLY: smooth native scrolling, zero pin lag, background autoplay ---
+              // Mobile: simple autoplay
               video.play().catch(() => {});
               return () => {
                 video.pause();
               };
             }
 
-            // --- DESKTOP ONLY: PC stays 100% same to same ---
+            // --- DESKTOP HIGH-PERFORMANCE SCRUB ---
             video.pause();
             const targetObj = { time: 0 };
-            let reqId: number;
+            let lastSeekTime = -1;
 
+            // Ultra-lightweight video frame updater (no RAF loop contention)
             const updateVideoFrame = () => {
-              if (video && !isNaN(video.duration) && video.duration > 0) {
+              if (
+                video &&
+                video.readyState >= 1 &&
+                !isNaN(video.duration) &&
+                video.duration > 0
+              ) {
                 const targetTime = targetObj.time;
-                if (!video.seeking && Math.abs(video.currentTime - targetTime) > 0.01) {
+                if (
+                  Math.abs(targetTime - lastSeekTime) > 0.015 &&
+                  !video.seeking
+                ) {
+                  lastSeekTime = targetTime;
                   video.currentTime = targetTime;
                 }
               }
             };
 
-            const trigger = gsap.to(targetObj, {
-              time: () => (video.duration ? Math.max(video.duration - 0.05, 0) : 20),
-              ease: "none",
+            const videoDur = video.duration
+              ? Math.max(video.duration - 0.05, 0)
+              : 20;
+
+            const tl = gsap.timeline({
               scrollTrigger: {
                 trigger: section,
                 start: "top top",
                 end: "+=400%",
-                scrub: 0.5,
+                scrub: 0.4,
                 pin: true,
                 anticipatePin: 1,
                 invalidateOnRefresh: true,
-                onUpdate: () => {
-                  updateVideoFrame();
-                },
+                onUpdate: updateVideoFrame,
               },
             });
 
-            const rafLoop = () => {
-              updateVideoFrame();
-              reqId = requestAnimationFrame(rafLoop);
-            };
-            reqId = requestAnimationFrame(rafLoop);
+            // Synchronize video timeline
+            tl.to(
+              targetObj,
+              {
+                time: videoDur,
+                ease: "none",
+                duration: 10,
+                onUpdate: updateVideoFrame,
+              },
+              0
+            );
 
-            const onSeeked = () => {
-              if (video && !isNaN(targetObj.time)) {
-                if (Math.abs(video.currentTime - targetObj.time) > 0.02) {
-                  video.currentTime = targetObj.time;
-                }
-              }
-            };
-            video.addEventListener("seeked", onSeeked);
+            const scenes = scenesRef.current;
+
+            // Scroll cue fades out early
+            if (scrollCueRef.current) {
+              tl.to(
+                scrollCueRef.current,
+                { opacity: 0, y: -15, duration: 0.4 },
+                0.1
+              );
+            }
+
+            // Scene 1: WE DON'T BUILD -> fades out
+            if (scenes[0]) {
+              tl.to(
+                scenes[0],
+                {
+                  opacity: 0,
+                  y: -25,
+                  duration: 0.6,
+                  ease: "power2.in",
+                },
+                1.2
+              );
+            }
+
+            // Scene 2: EVERY IDEA BEGINS IN SILENCE
+            if (scenes[1]) {
+              tl.fromTo(
+                scenes[1],
+                { opacity: 0, y: 25 },
+                {
+                  opacity: 1,
+                  y: 0,
+                  duration: 0.6,
+                  ease: "power2.out",
+                },
+                1.8
+              ).to(
+                scenes[1],
+                {
+                  opacity: 0,
+                  y: -25,
+                  duration: 0.6,
+                  ease: "power2.in",
+                },
+                3.2
+              );
+            }
+
+            // Scene 3: WHERE OTHERS SEE DARKNESS...
+            if (scenes[2]) {
+              tl.fromTo(
+                scenes[2],
+                { opacity: 0, y: 25 },
+                {
+                  opacity: 1,
+                  y: 0,
+                  duration: 0.6,
+                  ease: "power2.out",
+                },
+                3.8
+              ).to(
+                scenes[2],
+                {
+                  opacity: 0,
+                  y: -25,
+                  duration: 0.6,
+                  ease: "power2.in",
+                },
+                5.2
+              );
+            }
+
+            // Scene 4: ANTI GRAVITY
+            if (scenes[3]) {
+              tl.fromTo(
+                scenes[3],
+                { opacity: 0, y: 25 },
+                {
+                  opacity: 1,
+                  y: 0,
+                  duration: 0.6,
+                  ease: "power2.out",
+                },
+                5.8
+              ).to(
+                scenes[3],
+                {
+                  opacity: 0,
+                  y: -25,
+                  duration: 0.6,
+                  ease: "power2.in",
+                },
+                7.2
+              );
+            }
+
+            // Scene 5: EVERY PIXEL...
+            if (scenes[4]) {
+              tl.fromTo(
+                scenes[4],
+                { opacity: 0, y: 25 },
+                {
+                  opacity: 1,
+                  y: 0,
+                  duration: 0.6,
+                  ease: "power2.out",
+                },
+                7.8
+              ).to(
+                scenes[4],
+                {
+                  opacity: 0,
+                  y: -25,
+                  duration: 0.6,
+                  ease: "power2.in",
+                },
+                9.0
+              );
+            }
+
+            // Scene 6: A2 PRODUCTION -> Final CTA scene
+            if (scenes[5]) {
+              tl.fromTo(
+                scenes[5],
+                { opacity: 0, y: 25 },
+                {
+                  opacity: 1,
+                  y: 0,
+                  duration: 0.6,
+                  ease: "power2.out",
+                },
+                9.5
+              );
+            }
 
             return () => {
-              trigger.kill();
-              if (reqId) cancelAnimationFrame(reqId);
-              video.removeEventListener("seeked", onSeeked);
+              tl.kill();
             };
           }
         );
@@ -166,32 +323,14 @@ export function Hero() {
       if (video.readyState >= 1) {
         safeInitScrub();
       } else {
-        video.addEventListener("loadedmetadata", safeInitScrub, { once: true });
+        video.addEventListener("loadedmetadata", safeInitScrub, {
+          once: true,
+        });
         video.addEventListener("loadeddata", safeInitScrub, { once: true });
         video.addEventListener("canplay", safeInitScrub, { once: true });
       }
 
-      // --- Subtle mouse parallax on the headline ---
-      const quickX = gsap.quickTo(heading, "x", {
-        duration: 0.8,
-        ease: "power3.out",
-      });
-      const quickY = gsap.quickTo(heading, "y", {
-        duration: 0.8,
-        ease: "power3.out",
-      });
-
-      const handleMouseMove = (e: MouseEvent) => {
-        const relX = (e.clientX / window.innerWidth - 0.5) * 18;
-        const relY = (e.clientY / window.innerHeight - 0.5) * 12;
-        quickX(relX);
-        quickY(relY);
-      };
-
-      window.addEventListener("mousemove", handleMouseMove);
-
       return () => {
-        window.removeEventListener("mousemove", handleMouseMove);
         video.removeEventListener("loadedmetadata", safeInitScrub);
         video.removeEventListener("loadeddata", safeInitScrub);
         video.removeEventListener("canplay", safeInitScrub);
@@ -202,15 +341,23 @@ export function Hero() {
     { scope: sectionRef }
   );
 
+  // ── Shared typography styles for seamless title sequence feel ──
+  const sceneBase =
+    "absolute inset-0 z-10 flex flex-col justify-end px-6 pb-20 md:px-14 md:pb-24 lg:px-20 pointer-events-none";
+  const headlineBase =
+    "max-w-5xl font-geist text-[clamp(2.75rem,10vw,7rem)] font-medium leading-[0.95] tracking-tight text-text";
+  const line = "block overflow-hidden text-shadow-premium";
+
   return (
     <section
       ref={sectionRef}
       className="relative h-screen w-full overflow-hidden bg-background"
       aria-label="A2 Production — Crafting Digital Experiences That Inspire"
     >
+      {/* ── Background Video (Razor sharp Full HD rendering) ── */}
       <video
         ref={videoRef}
-        className="absolute inset-0 h-full w-full object-cover md:[filter:brightness(0.55)_contrast(1.15)_saturate(1.05)]"
+        className="absolute inset-0 h-full w-full object-cover transform-gpu filter-[brightness(0.88)_contrast(1.05)] translate-z-0"
         muted
         playsInline
         autoPlay
@@ -223,30 +370,29 @@ export function Hero() {
         <source src="/videos/gargantua-scrub.webm" type="video/webm" />
       </video>
 
-      {/* Layered scrim: vignette so the frame reads cinematic at any point
-          in the scrub, plus a dedicated dark pool behind the copy block so
-          legibility never depends on how bright a given video frame is. */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_25%,rgba(5,7,13,0.75)_100%)]" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[60%] bg-gradient-to-t from-[#05070d] via-[#05070d]/80 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#05070d]/70 via-transparent to-transparent" />
-      <div className="noise-overlay pointer-events-none absolute inset-0 opacity-[0.05]" />
+      {/* ── Soft Cinematic Scrims (Lightened to preserve video clarity & detail) ── */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(5,7,13,0.5)_100%)]" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[50%] bg-gradient-to-t from-[#05070d] via-[#05070d]/60 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#05070d]/40 via-transparent to-transparent" />
 
-      <div className="relative z-10 flex h-full w-full flex-col justify-end px-6 pb-20 md:px-14 md:pb-24 lg:px-20">
+      {/* ────────────────────────────────────────────────────────────
+          SCENE 1 — WE DON'T BUILD / WE CREATE / DIGITAL EXPERIENCES
+          ──────────────────────────────────────────────────────────── */}
+      <div
+        ref={(el) => {
+          scenesRef.current[0] = el;
+        }}
+        className={`${sceneBase} pointer-events-auto`}
+      >
         <h1
           ref={headingRef}
           aria-label="We don't build. We create digital experiences."
-          className="max-w-5xl font-geist text-[clamp(2.75rem,10vw,7rem)] font-medium leading-[0.95] tracking-tight text-text opacity-0"
+          className={`${headlineBase} opacity-0`}
         >
-          <span
-            aria-hidden
-            className="block overflow-hidden text-shadow-premium"
-          >
+          <span aria-hidden className={line}>
             WE DON&apos;T BUILD
           </span>
-          <span
-            aria-hidden
-            className="block overflow-hidden text-shadow-premium"
-          >
+          <span aria-hidden className={line}>
             WE CREATE
           </span>
           <span aria-hidden className="block overflow-hidden">
@@ -266,6 +412,117 @@ export function Hero() {
         </div>
       </div>
 
+      {/* ────────────────────────────────────────────────────────────
+          SCENE 2 — EVERY IDEA / BEGINS / IN SILENCE.
+          ──────────────────────────────────────────────────────────── */}
+      <div
+        ref={(el) => {
+          scenesRef.current[1] = el;
+        }}
+        className={sceneBase}
+        style={{ opacity: 0, willChange: "transform, opacity, filter" }}
+      >
+        <div className={headlineBase}>
+          <span className={line}>EVERY IDEA</span>
+          <span className={line}>BEGINS</span>
+          <span className="block overflow-hidden text-white/50 text-shadow-premium">
+            IN SILENCE.
+          </span>
+        </div>
+      </div>
+
+      {/* ────────────────────────────────────────────────────────────
+          SCENE 3 — WHERE OTHERS SEE DARKNESS / INFINITE POSSIBILITIES
+          ──────────────────────────────────────────────────────────── */}
+      <div
+        ref={(el) => {
+          scenesRef.current[2] = el;
+        }}
+        className={sceneBase}
+        style={{ opacity: 0, willChange: "transform, opacity, filter" }}
+      >
+        <div className={headlineBase}>
+          <span className={line}>WHERE OTHERS</span>
+          <span className="block overflow-hidden text-white/50 text-shadow-premium">
+            SEE DARKNESS,
+          </span>
+          <span className={`${line} mt-4 md:mt-6`}>WE SEE</span>
+          <span className="block overflow-hidden">
+            <span className="gradient-text">INFINITE POSSIBILITIES.</span>
+          </span>
+        </div>
+      </div>
+
+      {/* ────────────────────────────────────────────────────────────
+          SCENE 4 — ANTI / GRAVITY
+          ──────────────────────────────────────────────────────────── */}
+      <div
+        ref={(el) => {
+          scenesRef.current[3] = el;
+        }}
+        className={sceneBase}
+        style={{ opacity: 0, willChange: "transform, opacity, filter" }}
+      >
+        <div className={headlineBase}>
+          <span className={line}>ANTI</span>
+          <span className={line}>GRAVITY</span>
+        </div>
+        <p className="mt-8 max-w-xl font-inter text-lg font-light tracking-wide text-slate-300/80 text-shadow-premium md:text-2xl">
+          &ldquo;When gravity ends,{" "}
+          <span className="italic font-normal text-white/90">
+            creativity begins.
+          </span>
+          &rdquo;
+        </p>
+      </div>
+
+      {/* ────────────────────────────────────────────────────────────
+          SCENE 5 — EVERY PIXEL / EVERY MOTION / EVERY DETAIL
+          ──────────────────────────────────────────────────────────── */}
+      <div
+        ref={(el) => {
+          scenesRef.current[4] = el;
+        }}
+        className={sceneBase}
+        style={{ opacity: 0, willChange: "transform, opacity, filter" }}
+      >
+        <div className={headlineBase}>
+          <span className={line}>EVERY PIXEL.</span>
+          <span className={line}>EVERY MOTION.</span>
+          <span className={line}>EVERY DETAIL.</span>
+        </div>
+        <p className="mt-8 font-inter text-lg font-light tracking-[0.15em] uppercase text-white/40 text-shadow-premium md:text-2xl">
+          Crafted With Intention.
+        </p>
+      </div>
+
+      {/* ────────────────────────────────────────────────────────────
+          SCENE 6 — A2 PRODUCTION / BEYOND VISION / BEYOND LIMITS
+          ──────────────────────────────────────────────────────────── */}
+      <div
+        ref={(el) => {
+          scenesRef.current[5] = el;
+        }}
+        className={`${sceneBase} pointer-events-auto`}
+        style={{ opacity: 0, willChange: "transform, opacity, filter" }}
+      >
+        <div className={headlineBase}>
+          <span className="block overflow-hidden">
+            <span className="gradient-text">A2 PRODUCTION</span>
+          </span>
+          <span className="block overflow-hidden text-white/50 text-shadow-premium">
+            BEYOND VISION.
+          </span>
+          <span className="block overflow-hidden text-white/50 text-shadow-premium">
+            BEYOND LIMITS.
+          </span>
+        </div>
+        <div className="mt-10">
+          <MagneticButton>Start a Project</MagneticButton>
+        </div>
+      </div>
+
+      {/* ── Scroll Cue ── */}
       <div
         ref={scrollCueRef}
         className="absolute bottom-8 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2 font-poppins text-xs uppercase tracking-[0.3em] text-muted opacity-0"
