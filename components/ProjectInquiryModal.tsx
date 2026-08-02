@@ -564,9 +564,9 @@ export function ProjectInquiryModal({
       return;
     }
 
-    // 2. Client-Side Rate Limiting Check (15s minimum gap between requests)
+    // 2. Client-Side Rate Limiting Check (5s minimum gap between requests)
     const RATE_LIMIT_KEY = "a2_project_inquiry_last_submission";
-    const MIN_INTERVAL_MS = 15000;
+    const MIN_INTERVAL_MS = 5000;
     const lastSubmission = typeof window !== "undefined" ? localStorage.getItem(RATE_LIMIT_KEY) : null;
     const now = Date.now();
 
@@ -575,7 +575,7 @@ export function ProjectInquiryModal({
       if (elapsed < MIN_INTERVAL_MS) {
         const waitSeconds = Math.ceil((MIN_INTERVAL_MS - elapsed) / 1000);
         setToast({
-          message: `Please wait ${waitSeconds} seconds before submitting another request.`,
+          message: `Please wait ${waitSeconds} second${waitSeconds > 1 ? "s" : ""} before submitting again.`,
           type: "error",
         });
         return;
