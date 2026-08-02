@@ -64,10 +64,13 @@ export async function POST(request: NextRequest) {
     }
 
     // ── 3. Whitespace Trimming & Sanitization ──
-    const cleanFullName = typeof fullName === "string" ? fullName.trim() : "";
-    const cleanBusinessName = typeof businessName === "string" ? businessName.trim() : "";
+    const capitalizeWords = (str: string) =>
+      str.trim().replace(/\b[a-z]/g, (c) => c.toUpperCase());
+
+    const cleanFullName = typeof fullName === "string" ? capitalizeWords(fullName) : "";
+    const cleanBusinessName = typeof businessName === "string" ? capitalizeWords(businessName) : "";
     const cleanBusinessType = typeof businessType === "string" ? businessType.trim() : "";
-    const cleanPhone = typeof phoneNumber === "string" ? phoneNumber.trim() : "";
+    const cleanPhone = typeof phoneNumber === "string" ? phoneNumber.trim().replace(/[^0-9]/g, "") : "";
     const cleanEmail = typeof email === "string" ? sanitizeHeader(email) : "";
     const cleanDescription = typeof description === "string" ? description.trim() : "";
     const code = typeof phoneCode === "string" ? sanitizeHeader(phoneCode) : "+91";
@@ -79,7 +82,7 @@ export async function POST(request: NextRequest) {
       !cleanFullName || cleanFullName.length < 2 || cleanFullName.length > 100 ||
       !cleanBusinessName || cleanBusinessName.length < 2 || cleanBusinessName.length > 150 ||
       !cleanBusinessType || cleanBusinessType.length < 1 || cleanBusinessType.length > 100 ||
-      !cleanPhone || !/^[0-9]{10,15}$/.test(cleanPhone) ||
+      !cleanPhone || !/^[0-9]{10}$/.test(cleanPhone) ||
       !cleanEmail || cleanEmail.length > 100 || !EMAIL_REGEX.test(cleanEmail) ||
       !cleanDescription || cleanDescription.length < 20 || cleanDescription.length > 3000 ||
       !consent

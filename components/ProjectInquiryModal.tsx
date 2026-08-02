@@ -72,15 +72,18 @@ const COUNTRY_CODES = [
 
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
+const capitalizeWords = (v: string) =>
+  v.trim().replace(/\b[a-z]/g, (c) => c.toUpperCase());
+
 const formSchema = z.object({
   fullName: z
     .string()
-    .transform((v) => v.trim())
+    .transform(capitalizeWords)
     .refine((v) => v.length >= 2, "Full name must be at least 2 characters")
     .refine((v) => v.length <= 100, "Full name must not exceed 100 characters"),
   businessName: z
     .string()
-    .transform((v) => v.trim())
+    .transform(capitalizeWords)
     .refine((v) => v.length >= 2, "Business name must be at least 2 characters")
     .refine((v) => v.length <= 150, "Business name must not exceed 150 characters"),
   businessType: z
@@ -92,8 +95,8 @@ const formSchema = z.object({
   phoneNumber: z
     .string()
     .transform((v) => v.trim())
-    .refine((v) => v.length >= 1, "Phone number is required")
-    .refine((v) => /^[0-9]{10,15}$/.test(v), "Phone number must contain 10-15 digits"),
+    .refine((v) => v.length > 0, "Phone number is required")
+    .refine((v) => /^[0-9]{10}$/.test(v), "Phone number must be exactly 10 digits"),
   email: z
     .string()
     .transform((v) => v.trim())
@@ -845,7 +848,13 @@ export function ProjectInquiryModal({
                               <input
                                 {...register("fullName")}
                                 placeholder="Your full name"
-                                className={inputClasses}
+                                className={`${inputClasses} capitalize`}
+                                onInput={(e) => {
+                                  e.currentTarget.value = e.currentTarget.value.replace(
+                                    /\b[a-z]/g,
+                                    (c) => c.toUpperCase()
+                                  );
+                                }}
                               />
                             </FieldWrapper>
 
@@ -858,7 +867,13 @@ export function ProjectInquiryModal({
                               <input
                                 {...register("businessName")}
                                 placeholder="Your business name"
-                                className={inputClasses}
+                                className={`${inputClasses} capitalize`}
+                                onInput={(e) => {
+                                  e.currentTarget.value = e.currentTarget.value.replace(
+                                    /\b[a-z]/g,
+                                    (c) => c.toUpperCase()
+                                  );
+                                }}
                               />
                             </FieldWrapper>
                           </div>
@@ -918,9 +933,15 @@ export function ProjectInquiryModal({
                                 />
                                 <input
                                   {...register("phoneNumber")}
-                                  placeholder="Phone number"
+                                  placeholder="10-digit phone number"
                                   className={`${inputClasses} flex-1`}
                                   type="tel"
+                                  maxLength={10}
+                                  onInput={(e) => {
+                                    e.currentTarget.value = e.currentTarget.value
+                                      .replace(/[^0-9]/g, "")
+                                      .slice(0, 10);
+                                  }}
                                 />
                               </div>
                             </FieldWrapper>
