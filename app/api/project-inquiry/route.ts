@@ -114,11 +114,14 @@ export async function POST(request: NextRequest) {
 
     // ── 5. Server-Side Supabase DB Storage ──
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+    const supabaseKey =
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      process.env.SUPABASE_ANON_KEY;
 
-    if (supabaseUrl && supabaseAnonKey) {
+    if (supabaseUrl && supabaseKey) {
       try {
-        const dbClient = createClient(supabaseUrl.trim(), supabaseAnonKey.trim());
+        const dbClient = createClient(supabaseUrl.trim(), supabaseKey.trim());
         const { error: dbError } = await dbClient
           .from("project_requests")
           .insert([
@@ -135,11 +138,15 @@ export async function POST(request: NextRequest) {
           ]);
 
         if (dbError) {
-          console.error("[Supabase DB Insert Error]:", dbError);
+          console.error("[Supabase DB Insert Error]:", JSON.stringify(dbError, null, 2));
+        } else {
+          console.log("[Supabase DB Success] Saved inquiry for:", cleanEmail);
         }
       } catch (dbErr) {
         console.error("[Supabase Client Init Error]:", dbErr);
       }
+    } else {
+      console.warn("[Supabase Config] Missing SUPABASE_URL or SUPABASE_ANON_KEY in environment.");
     }
 
     // ── 6. Server-Side Email Delivery via Resend ──
