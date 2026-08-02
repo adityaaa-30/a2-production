@@ -31,9 +31,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full w-full antialiased overflow-x-hidden`}
+      className={`${geistSans.variable} ${geistMono.variable} w-full antialiased`}
     >
-      <body className="min-h-full w-full flex flex-col bg-background text-[#f4f4f5] overflow-x-hidden">
+      <body className="min-h-screen w-full flex flex-col bg-background text-[#f4f4f5] overflow-x-hidden">
         <Preloader />
         <SmoothScrollProvider>
           <ProjectInquiryProvider>
