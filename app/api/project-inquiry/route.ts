@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
+import { createClient } from "@supabase/supabase-js";
+
 
 /**
  * Utility function to HTML-escape user inputs to prevent XSS in HTML emails.
@@ -104,7 +106,37 @@ export async function POST(request: NextRequest) {
 
     const budgetOrTimeline = safeTimeline || (safeServices.length > 0 ? safeServices.join(", ") : "Not specified");
 
-    // ── 5. Server-Side Email Delivery via Resend ──
+    // ── 5. Server-Side Supabase DB Storage ──
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+
+    if (supabaseUrl && supabaseAnonKey) {
+      try {
+        const dbClient = createClient(supabaseUrl.trim(), supabaseAnonKey.trim());
+        const { error: dbError } = await dbClient
+          .from("project_requests")
+          .insert([
+            {
+              client_name: cleanFullName,
+              business_name: cleanBusinessName,
+              business_type: cleanBusinessType,
+              email: cleanEmail,
+              phone: `${code} ${cleanPhone}`,
+              project_description: cleanDescription,
+              budget: budgetOrTimeline,
+              status: "New",
+            },
+          ]);
+
+        if (dbError) {
+          console.error("[Supabase DB Insert Error]:", dbError);
+        }
+      } catch (dbErr) {
+        console.error("[Supabase Client Init Error]:", dbErr);
+      }
+    }
+
+    // ── 6. Server-Side Email Delivery via Resend ──
     const resendApiKey = process.env.RESEND_API_KEY;
 
     // Guard: RESEND_API_KEY must be present and non-empty

@@ -15,7 +15,7 @@ import {
   Loader2,
   FileText,
 } from "lucide-react";
-import { supabase } from "@/lib/supabase";
+
 
 /* ═══════════════════════════════════════════════════════════════
    CONSTANTS
@@ -631,46 +631,24 @@ export function ProjectInquiryModal({
     setToast(null);
 
     try {
-      // 4. Insert data into Supabase `project_requests` table
-      const { error: supabaseError } = await supabase
-        .from("project_requests")
-        .insert([
-          {
-            client_name: clientName,
-            business_name: businessName,
-            business_type: businessType,
-            email: email,
-            phone: `${data.phoneCode} ${phoneNumber}`,
-            project_description: description,
-            budget: data.timeline || (data.services && data.services.length > 0 ? data.services.join(", ") : null),
-            status: "New",
-          },
-        ]);
+      // Send submission request to server API route
+      const emailRes = await fetch("/api/project-inquiry", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...data, formStartTime }),
+      });
 
-      if (supabaseError) {
-        throw supabaseError;
+      const responseBody = await emailRes.json().catch(() => null);
+
+      if (!emailRes.ok) {
+        const errorMsg =
+          responseBody?.error || `Submission failed with status code ${emailRes.status}`;
+        throw new Error(errorMsg);
       }
 
       // Record successful submission timestamp for rate limiting
       if (typeof window !== "undefined") {
         localStorage.setItem(RATE_LIMIT_KEY, Date.now().toString());
-      }
-
-      // 5. Send email via API
-      try {
-        const emailRes = await fetch("/api/project-inquiry", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...data, formStartTime }),
-        });
-
-        if (!emailRes.ok) {
-          const emailBody = await emailRes.json().catch(() => null);
-          const emailErrMsg = emailBody?.error || `Email API returned ${emailRes.status}`;
-          console.error("Email API error:", emailErrMsg);
-        }
-      } catch (err) {
-        console.error("Email API network error:", err);
       }
 
       // Show success toast
@@ -689,7 +667,12 @@ export function ProjectInquiryModal({
       setStatus("error");
 
       let errorMessage = "Failed to submit project request. Please try again.";
-      if (err && typeof err === "object" && "message" in err && typeof (err as { message: unknown }).message === "string") {
+      if (
+        err &&
+        typeof err === "object" &&
+        "message" in err &&
+        typeof (err as { message: unknown }).message === "string"
+      ) {
         errorMessage = (err as { message: string }).message;
       }
 
@@ -706,6 +689,7 @@ export function ProjectInquiryModal({
       // Recover status after 4s
       setTimeout(() => setStatus("idle"), 4000);
     }
+
   };
 
   const handleSubmitAnother = () => {
