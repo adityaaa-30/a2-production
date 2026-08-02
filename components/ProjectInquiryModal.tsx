@@ -108,8 +108,8 @@ const formSchema = z.object({
   description: z
     .string()
     .transform((v) => v.trim())
-    .refine((v) => v.length >= 20, "Project description must be at least 20 characters")
-    .refine((v) => v.length <= 3000, "Project description must not exceed 3000 characters"),
+    .refine((v) => v.length === 0 || v.length <= 3000, "Project description must not exceed 3000 characters")
+    .optional(),
   websiteUrl: z.string().optional(),
   consent: z.literal(true, {
     errorMap: () => ({ message: "You must agree to be contacted" }),
@@ -588,15 +588,15 @@ export function ProjectInquiryModal({
     const businessType = data.businessType.trim();
     const email = data.email.trim();
     const phoneNumber = data.phoneNumber.trim();
-    const description = data.description.trim();
+    const description = data.description?.trim() ?? "";
 
     if (
       !clientName || clientName.length < 2 || clientName.length > 100 ||
       !businessName || businessName.length < 2 || businessName.length > 150 ||
       !businessType || businessType.length < 1 || businessType.length > 100 ||
       !email || email.length > 100 || !EMAIL_REGEX.test(email) ||
-      !phoneNumber || !/^[0-9]{10,15}$/.test(phoneNumber) ||
-      !description || description.length < 20 || description.length > 3000
+      !phoneNumber || !/^[0-9]{10}$/.test(phoneNumber) ||
+      description.length > 3000
     ) {
       setToast({
         message: "Invalid submission data. Please check all fields and try again.",
@@ -995,7 +995,6 @@ export function ProjectInquiryModal({
                           {/* Description */}
                           <FieldWrapper
                             label="Project Description"
-                            required
                             error={errors.description?.message}
                             index={8}
                           >

@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       !cleanBusinessType || cleanBusinessType.length < 1 || cleanBusinessType.length > 100 ||
       !cleanPhone || !/^[0-9]{10}$/.test(cleanPhone) ||
       !cleanEmail || cleanEmail.length > 100 || !EMAIL_REGEX.test(cleanEmail) ||
-      !cleanDescription || cleanDescription.length < 20 || cleanDescription.length > 3000 ||
+      cleanDescription.length > 3000 ||
       !consent
     ) {
       return NextResponse.json(
