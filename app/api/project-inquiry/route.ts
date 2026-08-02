@@ -54,16 +54,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    // ── 2. Bot Timing Check (Must take at least 2.5s to fill form) ──
-    if (formStartTime && typeof formStartTime === "number") {
-      const elapsed = Date.now() - formStartTime;
-      if (elapsed < 2500) {
-        console.warn(`[Security] Automated submission detected (filled in ${elapsed}ms).`);
-        return NextResponse.json({ success: true }); // Return fake success to confuse bots
-      }
-    }
-
-    // ── 3. Whitespace Trimming & Sanitization ──
+    // ── 2. Whitespace Trimming & Sanitization ──
     const capitalizeWords = (str: string) =>
       str.trim().replace(/\b[a-z]/g, (c) => c.toUpperCase());
 
@@ -75,7 +66,7 @@ export async function POST(request: NextRequest) {
     const cleanDescription = typeof description === "string" ? description.trim() : "";
     const code = typeof phoneCode === "string" ? sanitizeHeader(phoneCode) : "+91";
 
-    // ── 4. Strict Server-Side Validation ──
+    // ── 3. Strict Server-Side Validation ──
     const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
     if (
@@ -112,41 +103,53 @@ export async function POST(request: NextRequest) {
     const budgetOrTimeline =
       [timelineText, servicesText].filter(Boolean).join(" | ") || "Not specified";
 
-    // ── 5. Server-Side Supabase DB Storage ──
+    // ── 4. Server-Side Supabase DB Storage ──
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY ||
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
       process.env.SUPABASE_ANON_KEY;
 
-    if (supabaseUrl && supabaseKey) {
-      try {
-        const dbClient = createClient(supabaseUrl.trim(), supabaseKey.trim());
-        const { error: dbError } = await dbClient
-          .from("project_requests")
-          .insert([
-            {
-              client_name: cleanFullName,
-              business_name: cleanBusinessName,
-              business_type: cleanBusinessType,
-              email: cleanEmail,
-              phone: `${code} ${cleanPhone}`,
-              project_description: cleanDescription,
-              budget: budgetOrTimeline,
-              status: "New",
-            },
-          ]);
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("[Supabase Config Error] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY in environment.");
+      return NextResponse.json(
+        { error: "Database keys missing in Vercel Environment Variables. Please check Settings -> Environment Variables in Vercel." },
+        { status: 500 }
+      );
+    }
 
-        if (dbError) {
-          console.error("[Supabase DB Insert Error]:", JSON.stringify(dbError, null, 2));
-        } else {
-          console.log("[Supabase DB Success] Saved inquiry for:", cleanEmail);
-        }
-      } catch (dbErr) {
-        console.error("[Supabase Client Init Error]:", dbErr);
+    try {
+      const dbClient = createClient(supabaseUrl.trim(), supabaseKey.trim());
+      const { error: dbError } = await dbClient
+        .from("project_requests")
+        .insert([
+          {
+            client_name: cleanFullName,
+            business_name: cleanBusinessName,
+            business_type: cleanBusinessType,
+            email: cleanEmail,
+            phone: `${code} ${cleanPhone}`,
+            project_description: cleanDescription,
+            budget: budgetOrTimeline,
+            status: "New",
+          },
+        ]);
+
+      if (dbError) {
+        console.error("[Supabase DB Insert Error]:", JSON.stringify(dbError, null, 2));
+        return NextResponse.json(
+          { error: `Database Error: ${dbError.message || dbError.details || "Failed to save inquiry to Supabase"}` },
+          { status: 500 }
+        );
       }
-    } else {
-      console.warn("[Supabase Config] Missing SUPABASE_URL or SUPABASE_ANON_KEY in environment.");
+
+      console.log("[Supabase DB Success] Saved inquiry for:", cleanEmail);
+    } catch (dbErr: any) {
+      console.error("[Supabase Exception]:", dbErr);
+      return NextResponse.json(
+        { error: `Database Connection Failed: ${dbErr?.message || "Check Supabase credentials"}` },
+        { status: 500 }
+      );
     }
 
     // ── 6. Server-Side Email Delivery via Resend ──
