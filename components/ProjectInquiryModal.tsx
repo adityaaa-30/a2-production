@@ -111,9 +111,7 @@ const formSchema = z.object({
     .refine((v) => v.length === 0 || v.length <= 3000, "Project description must not exceed 3000 characters")
     .optional(),
   websiteUrl: z.string().optional(),
-  consent: z.literal(true, {
-    errorMap: () => ({ message: "You must agree to be contacted" }),
-  }),
+  consent: z.boolean().optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -511,7 +509,7 @@ export function ProjectInquiryModal({
       timeline: "",
       services: [],
       description: "",
-      consent: undefined,
+      consent: true,
     },
   });
 
