@@ -1,141 +1,285 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import SplitType from "split-type";
 import { ArrowDown } from "lucide-react";
 import { gsap, useGSAP } from "@/lib/gsap";
+import { motion, AnimatePresence } from "framer-motion";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 import { useProjectInquiryModal } from "@/components/ProjectInquiryContext";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MOBILE HERO — Static scene with background poster, no video scrub
+// MOBILE HERO — Fullscreen cinematic video with auto-cycling scenes
 // ─────────────────────────────────────────────────────────────────────────────
-function MobileHero({ openModal }: { openModal: () => void }) {
-  const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const ctx = gsap.context(() => {
-      // Staggered entrance for all mobile scene blocks
-      gsap.fromTo(
-        ".m-scene",
-        { opacity: 0, y: 40 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.9,
-          ease: "power3.out",
-          stagger: 0.15,
-          delay: 0.2,
-        }
-      );
-    }, containerRef);
-    return () => ctx.revert();
+interface MobileScene {
+  id: number;
+  lines: { text: string; style?: string }[];
+  subtitle?: string;
+  showCta?: boolean;
+}
+
+const MOBILE_SCENES: MobileScene[] = [
+  {
+    id: 0,
+    lines: [
+      { text: "WE DON'T BUILD" },
+      { text: "WE CREATE" },
+      { text: "DIGITAL EXPERIENCES", style: "gradient-text" },
+    ],
+    subtitle:
+      "A2 Production is a creative digital agency crafting brands, products, and motion for companies who refuse to blend in.",
+    showCta: true,
+  },
+  {
+    id: 1,
+    lines: [
+      { text: "EVERY IDEA" },
+      { text: "BEGINS" },
+      { text: "IN SILENCE.", style: "text-white/40" },
+    ],
+  },
+  {
+    id: 2,
+    lines: [
+      { text: "WHERE OTHERS" },
+      { text: "SEE DARKNESS,", style: "text-white/40" },
+      { text: "WE SEE" },
+      { text: "INFINITE POSSIBILITIES.", style: "gradient-text" },
+    ],
+  },
+  {
+    id: 3,
+    lines: [{ text: "ANTI" }, { text: "GRAVITY" }],
+    subtitle: "\u201CWhen gravity ends, creativity begins.\u201D",
+  },
+  {
+    id: 4,
+    lines: [
+      { text: "EVERY PIXEL." },
+      { text: "EVERY MOTION." },
+      { text: "EVERY DETAIL." },
+    ],
+    subtitle: "CRAFTED WITH INTENTION.",
+  },
+  {
+    id: 5,
+    lines: [
+      { text: "A2 PRODUCTION", style: "gradient-text" },
+      { text: "BEYOND VISION.", style: "text-white/50" },
+      { text: "BEYOND LIMITS.", style: "text-white/50" },
+    ],
+    showCta: true,
+  },
+];
+
+const SCENE_DURATION = 4000; // ms per scene
+
+const sceneVariants = {
+  enter: { opacity: 0, y: 30, filter: "blur(6px)" },
+  center: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: {
+      duration: 0.7,
+      ease: [0.25, 0.46, 0.45, 0.94] as any,
+      staggerChildren: 0.08,
+      delayChildren: 0.1,
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: -20,
+    filter: "blur(4px)",
+    transition: {
+      duration: 0.5,
+      ease: [0.55, 0.085, 0.68, 0.53] as any,
+    },
+  },
+};
+
+const lineVariants = {
+  enter: { opacity: 0, y: 20 },
+  center: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as any } },
+  exit: { opacity: 0 },
+};
+
+function MobileHero({ openModal }: { openModal: () => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [activeScene, setActiveScene] = useState(0);
+  const [videoReady, setVideoReady] = useState(false);
+
+  // Robust video autoplay for iOS Safari & Android Chrome
+  const attemptPlay = useCallback(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => setVideoReady(true))
+        .catch(() => {
+          // Autoplay blocked — poster image shows as fallback
+          setVideoReady(false);
+        });
+    }
   }, []);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Try playing on multiple lifecycle events for maximum compatibility
+    if (video.readyState >= 3) {
+      attemptPlay();
+    } else {
+      video.addEventListener("canplay", attemptPlay, { once: true });
+      video.addEventListener("loadeddata", attemptPlay, { once: true });
+    }
+
+    // iOS sometimes needs a user-gesture nudge on first load —
+    // we also try on first touchstart as a safety net
+    const touchHandler = () => {
+      attemptPlay();
+      document.removeEventListener("touchstart", touchHandler);
+    };
+    document.addEventListener("touchstart", touchHandler, { once: true, passive: true });
+
+    return () => {
+      video.removeEventListener("canplay", attemptPlay);
+      video.removeEventListener("loadeddata", attemptPlay);
+      document.removeEventListener("touchstart", touchHandler);
+    };
+  }, [attemptPlay]);
+
+  // Auto-cycle scenes
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveScene((prev) => (prev + 1) % MOBILE_SCENES.length);
+    }, SCENE_DURATION);
+    return () => clearInterval(timer);
+  }, []);
+
+  const scene = MOBILE_SCENES[activeScene];
+
   return (
-    <div
-      ref={containerRef}
-      className="relative w-full min-h-screen bg-background overflow-hidden flex flex-col"
+    <section
+      className="relative w-full overflow-hidden bg-background"
+      style={{ height: "100svh", minHeight: "100dvh" }}
+      aria-label="A2 Production — Crafting Digital Experiences That Inspire"
     >
-      {/* Background: poster image with gradient overlay */}
+      {/* ── Background Video with poster fallback ── */}
+      <video
+        ref={videoRef}
+        className="absolute inset-0 h-full w-full object-cover"
+        style={{ opacity: videoReady ? 1 : 0, transition: "opacity 0.8s ease" }}
+        muted
+        playsInline
+        autoPlay
+        loop
+        preload="auto"
+        poster="/images/hero-poster.jpg"
+        aria-hidden
+      >
+        <source src="/videos/gargantua-scrub.mp4" type="video/mp4" />
+        <source src="/videos/gargantua-scrub.webm" type="video/webm" />
+      </video>
+
+      {/* Static poster fallback (visible when video hasn't loaded) */}
       <div
-        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: "url('/images/hero-poster.jpg')" }}
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-700"
+        style={{
+          backgroundImage: "url('/images/hero-poster.jpg')",
+          opacity: videoReady ? 0 : 1,
+        }}
         aria-hidden
       />
-      {/* Dark overlays */}
-      <div className="absolute inset-0 bg-[#050507]/70" aria-hidden />
-      <div className="absolute inset-0 bg-gradient-to-b from-[#050507]/60 via-transparent to-[#050507]" aria-hidden />
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(5,5,7,0.7)_100%)]" aria-hidden />
 
-      {/* ─── Main hero content ─── */}
-      <div className="relative z-10 flex flex-col flex-1 justify-end px-6 pb-16 pt-32">
+      {/* ── Cinematic overlays ── */}
+      <div className="pointer-events-none absolute inset-0 bg-[#05070d]/60" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#05070d]/50 via-transparent to-[#05070d]" aria-hidden />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(5,7,13,0.7)_100%)]" aria-hidden />
 
-        {/* Primary headline */}
-        <div className="m-scene mb-8">
-          <h1 className="font-geist text-[clamp(2.6rem,13vw,5rem)] font-medium leading-[0.92] tracking-tight text-text">
-            <span className="block overflow-hidden">WE DON&apos;T BUILD</span>
-            <span className="block overflow-hidden">WE CREATE</span>
-            <span className="block overflow-hidden">
-              <span className="gradient-text">DIGITAL EXPERIENCES</span>
-            </span>
-          </h1>
-        </div>
+      {/* ── Scene content ── */}
+      <div
+        className="relative z-10 flex h-full flex-col justify-end"
+        style={{ padding: "env(safe-area-inset-top, 0px) 1.5rem calc(env(safe-area-inset-bottom, 0px) + 2.5rem) 1.5rem" }}
+      >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={scene.id}
+            variants={sceneVariants}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            className="flex flex-col gap-5"
+          >
+            {/* Headline lines */}
+            <h1 className="font-geist text-[clamp(2.4rem,11vw,4.5rem)] font-medium leading-[0.92] tracking-tight text-text">
+              {scene.lines.map((line, i) => (
+                <motion.span
+                  key={i}
+                  variants={lineVariants}
+                  className={`block overflow-hidden ${line.style || ""}`}
+                >
+                  {line.text}
+                </motion.span>
+              ))}
+            </h1>
 
-        {/* Description + CTA */}
-        <div className="m-scene mb-12">
-          <p className="text-sm text-muted leading-relaxed mb-6 max-w-xs">
-            A2 Production is a creative digital agency crafting brands, products,
-            and motion for companies who refuse to blend in.
-          </p>
-          <MagneticButton onClick={openModal}>Start a Project</MagneticButton>
-        </div>
-      </div>
+            {/* Subtitle */}
+            {scene.subtitle && (
+              <motion.p
+                variants={lineVariants}
+                className="max-w-xs font-inter text-sm font-light leading-relaxed text-muted"
+              >
+                {scene.subtitle}
+              </motion.p>
+            )}
 
-      {/* ─── Scene cards below hero fold ─── */}
-      <div className="relative z-10 bg-background px-6 py-14 flex flex-col gap-16">
+            {/* CTA */}
+            {scene.showCta && (
+              <motion.div variants={lineVariants} className="pt-2">
+                <button
+                  onClick={openModal}
+                  className="w-full rounded-full bg-text py-4 px-8 text-sm font-medium tracking-wide text-background transition-all duration-300 active:scale-[0.97]"
+                >
+                  Start a Project
+                </button>
+              </motion.div>
+            )}
+          </motion.div>
+        </AnimatePresence>
 
-        {/* Scene 2 */}
-        <div className="m-scene">
-          <h2 className="font-geist text-[clamp(2rem,10vw,3.5rem)] font-medium leading-[0.95] tracking-tight text-text">
-            <span className="block">EVERY IDEA</span>
-            <span className="block">BEGINS</span>
-            <span className="block text-white/40">IN SILENCE.</span>
-          </h2>
-        </div>
-
-        {/* Scene 3 */}
-        <div className="m-scene border-t border-white/5 pt-12">
-          <h2 className="font-geist text-[clamp(2rem,10vw,3.5rem)] font-medium leading-[0.95] tracking-tight text-text">
-            <span className="block">WHERE OTHERS</span>
-            <span className="block text-white/40">SEE DARKNESS,</span>
-            <span className="block mt-3">WE SEE</span>
-            <span className="block">
-              <span className="gradient-text">INFINITE POSSIBILITIES.</span>
-            </span>
-          </h2>
-        </div>
-
-        {/* Scene 4 — Quote */}
-        <div className="m-scene border-t border-white/5 pt-12">
-          <h2 className="font-geist text-[clamp(2rem,10vw,3.5rem)] font-medium leading-[0.95] tracking-tight text-text">
-            <span className="block">ANTI</span>
-            <span className="block">GRAVITY</span>
-          </h2>
-          <p className="mt-5 font-inter text-base font-light tracking-wide text-slate-300/70 leading-relaxed">
-            &ldquo;When gravity ends,{" "}
-            <span className="italic font-normal text-white/90">creativity begins.</span>
-            &rdquo;
-          </p>
-        </div>
-
-        {/* Scene 5 */}
-        <div className="m-scene border-t border-white/5 pt-12">
-          <h2 className="font-geist text-[clamp(2rem,10vw,3.5rem)] font-medium leading-[0.95] tracking-tight text-text">
-            <span className="block">EVERY PIXEL.</span>
-            <span className="block">EVERY MOTION.</span>
-            <span className="block">EVERY DETAIL.</span>
-          </h2>
-          <p className="mt-4 font-inter text-xs font-light tracking-[0.2em] uppercase text-white/30">
-            Crafted With Intention.
-          </p>
-        </div>
-
-        {/* Scene 6 — Final CTA */}
-        <div className="m-scene border-t border-white/5 pt-12 pb-4">
-          <h2 className="font-geist text-[clamp(2rem,10vw,3.5rem)] font-medium leading-[0.95] tracking-tight text-text">
-            <span className="block">
-              <span className="gradient-text">A2 PRODUCTION</span>
-            </span>
-            <span className="block text-white/40">BEYOND VISION.</span>
-            <span className="block text-white/40">BEYOND LIMITS.</span>
-          </h2>
-          <div className="mt-8">
-            <MagneticButton onClick={openModal}>Start a Project</MagneticButton>
-          </div>
+        {/* ── Scene progress dots ── */}
+        <div className="mt-8 flex items-center justify-center gap-2">
+          {MOBILE_SCENES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveScene(i)}
+              aria-label={`Go to scene ${i + 1}`}
+              className="group relative h-2 rounded-full transition-all duration-500"
+              style={{ width: i === activeScene ? 24 : 8 }}
+            >
+              <span
+                className="absolute inset-0 rounded-full transition-all duration-500"
+                style={{
+                  backgroundColor: i === activeScene ? "#FF7A00" : "rgba(255,255,255,0.2)",
+                }}
+              />
+              {i === activeScene && (
+                <motion.span
+                  className="absolute inset-0 rounded-full bg-[#FF7A00]"
+                  layoutId="scene-indicator"
+                  transition={{ type: "spring", stiffness: 350, damping: 30 }}
+                />
+              )}
+            </button>
+          ))}
         </div>
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -291,7 +435,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
               tl.to(scrollCueRef.current, { opacity: 0, y: -15, duration: 0.4 }, 0.1);
             }
             if (scenes[0]) {
-              tl.to(scenes[0], { opacity: 0, y: -25, duration: 0.6, ease: "power2.in" }, 1.2);
+              tl.to(scenes[0], { opacity: 0, y: -25, pointerEvents: "none", duration: 0.6, ease: "power2.in" }, 1.2);
             }
             if (scenes[1]) {
               tl.fromTo(scenes[1], { opacity: 0, y: 25 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 1.8)
@@ -310,7 +454,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
                 .to(scenes[4], { opacity: 0, y: -25, duration: 0.6, ease: "power2.in" }, 9.0);
             }
             if (scenes[5]) {
-              tl.fromTo(scenes[5], { opacity: 0, y: 25 }, { opacity: 1, y: 0, duration: 0.6, ease: "power2.out" }, 9.5);
+              tl.fromTo(scenes[5], { opacity: 0, y: 25 }, { opacity: 1, y: 0, pointerEvents: "auto", duration: 0.6, ease: "power2.out" }, 9.5);
             }
 
             return () => { tl.kill(); };
@@ -345,7 +489,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
   );
 
   const sceneBase =
-    "absolute inset-0 z-10 flex flex-col justify-end px-6 pb-20 md:px-14 md:pb-24 lg:px-20 pointer-events-none";
+    "absolute inset-0 z-10 flex flex-col justify-end px-6 pb-20 md:px-14 md:pb-24 lg:px-20";
   const headlineBase =
     "max-w-5xl font-geist text-[clamp(2.75rem,10vw,7rem)] font-medium leading-[0.95] tracking-tight text-text";
   const line = "block overflow-hidden text-shadow-premium";
@@ -406,7 +550,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
       {/* Scene 2 */}
       <div
         ref={(el) => { scenesRef.current[1] = el; }}
-        className={sceneBase}
+        className={`${sceneBase} pointer-events-none`}
         style={{ opacity: 0, willChange: "transform, opacity, filter" }}
       >
         <div className={headlineBase}>
@@ -419,7 +563,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
       {/* Scene 3 */}
       <div
         ref={(el) => { scenesRef.current[2] = el; }}
-        className={sceneBase}
+        className={`${sceneBase} pointer-events-none`}
         style={{ opacity: 0, willChange: "transform, opacity, filter" }}
       >
         <div className={headlineBase}>
@@ -435,7 +579,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
       {/* Scene 4 */}
       <div
         ref={(el) => { scenesRef.current[3] = el; }}
-        className={sceneBase}
+        className={`${sceneBase} pointer-events-none`}
         style={{ opacity: 0, willChange: "transform, opacity, filter" }}
       >
         <div className={headlineBase}>
@@ -452,7 +596,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
       {/* Scene 5 */}
       <div
         ref={(el) => { scenesRef.current[4] = el; }}
-        className={sceneBase}
+        className={`${sceneBase} pointer-events-none`}
         style={{ opacity: 0, willChange: "transform, opacity, filter" }}
       >
         <div className={headlineBase}>
@@ -468,7 +612,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
       {/* Scene 6 */}
       <div
         ref={(el) => { scenesRef.current[5] = el; }}
-        className={`${sceneBase} pointer-events-auto`}
+        className={`${sceneBase} pointer-events-none`}
         style={{ opacity: 0, willChange: "transform, opacity, filter" }}
       >
         <div className={headlineBase}>
@@ -510,10 +654,23 @@ export function Hero() {
     return () => mq.removeEventListener("change", handler);
   }, []);
 
-  // Avoid SSR mismatch — render nothing until we know device
+  // Avoid SSR mismatch — render a minimal poster shell until JS confirms device type
+  // Using a real visible placeholder (not aria-hidden) prevents blank screen on real mobile
   if (isMobile === null) {
     return (
-      <div className="relative h-screen w-full bg-background" aria-hidden />
+      <div
+        className="relative w-full bg-background"
+        style={{
+          height: "100svh",
+          minHeight: "100dvh",
+          backgroundImage: "url('/images/hero-poster.jpg')",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+        }}
+      >
+        <div className="absolute inset-0 bg-[#05070d]/70" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#05070d]/50 via-transparent to-[#05070d]" />
+      </div>
     );
   }
 

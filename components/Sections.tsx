@@ -13,6 +13,7 @@ import {
   Clapperboard,
   SlidersHorizontal,
   Rocket,
+  Mail,
 } from "lucide-react";
 
 function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -47,6 +48,23 @@ function LinkedinIcon(props: React.SVGProps<SVGSVGElement>) {
       <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z" />
       <rect width="4" height="12" x="2" y="9" />
       <circle cx="4" cy="4" r="2" />
+    </svg>
+  );
+}
+
+function WhatsappIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      {...props}
+    >
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.372-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414-.074-.124-.272-.198-.57-.347z" />
+      <path d="M12 2a10 10 0 0 0-8.344 15.539L2.5 21.5l4.086-1.072A10 10 0 1 0 12 2z" />
     </svg>
   );
 }
@@ -503,6 +521,173 @@ function TeamCard({ member }: { member: TeamMember }) {
   );
 }
 
+const contactContainerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.15,
+      delayChildren: 0.1,
+    },
+  },
+};
+
+const contactItemVariants = {
+  hidden: { opacity: 0, y: 30, filter: "blur(8px)" },
+  show: {
+    opacity: 1,
+    y: 0,
+    filter: "blur(0px)",
+    transition: {
+      duration: 0.8,
+      ease: [0.215, 0.61, 0.355, 1] as const,
+    },
+  },
+};
+
+/* ────────────────────────────────────────────────────────────
+    04 — CONTACT (PREMIUM CREATIVE AGENCY SECTION)
+    ──────────────────────────────────────────────────────────── */
+function ContactSection() {
+  const { openModal } = useProjectInquiryModal();
+
+  const contactItems = [
+    {
+      id: "instagram",
+      title: "Instagram",
+      value: "@a2_production1",
+      caption: "See our latest films, edits & behind the scenes.",
+      href: "https://www.instagram.com/a2_production1?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw==",
+      icon: InstagramIcon,
+      external: true,
+    },
+    {
+      id: "whatsapp",
+      title: "WhatsApp",
+      value: "+91 93306 83966",
+      caption: "Available for project discussions and quick responses.",
+      href: "https://wa.me/919330683966",
+      icon: WhatsappIcon,
+      external: true,
+    },
+    {
+      id: "email",
+      title: "Business Email",
+      value: "a2production440@gmail.com",
+      caption: "Business inquiries, collaborations and partnerships.",
+      href: "mailto:a2production440@gmail.com",
+      icon: Mail,
+      external: false,
+    },
+  ];
+
+  return (
+    <section
+      id="contact"
+      className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col justify-center border-t border-white/10 px-6 py-28 md:px-14 lg:px-20 overflow-hidden"
+    >
+      {/* Background ambient radial glow */}
+      <div className="pointer-events-none absolute top-1/2 right-10 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.06)_0%,transparent_70%)] blur-3xl" />
+
+      <motion.div
+        variants={contactContainerVariants}
+        initial="hidden"
+        whileInView="show"
+        viewport={{ once: true, margin: "-80px" }}
+        className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16 items-center"
+      >
+        {/* LEFT COLUMN */}
+        <motion.div variants={contactItemVariants} className="flex flex-col gap-6 lg:col-span-6">
+          <div className="inline-flex items-center gap-2 rounded-full border border-[#FF7A00]/25 bg-[#FF7A00]/[0.05] px-4 py-1.5 backdrop-blur-md w-fit">
+            <span className="h-2 w-2 rounded-full bg-[#FF7A00] animate-pulse" />
+            <span className="font-poppins text-xs font-medium uppercase tracking-[0.35em] text-[#FF7A00]">
+              04 — CONTACT
+            </span>
+          </div>
+
+          <h2 className="font-geist text-[clamp(2.25rem,5.5vw,4.25rem)] font-medium leading-[1.05] tracking-tight text-white">
+            Let&apos;s build something that refuses to blend in.
+          </h2>
+
+          <p className="max-w-xl font-inter text-base font-light text-[#a1a1aa] leading-relaxed md:text-lg">
+            Whether you&apos;re launching a new brand, producing cinematic content, or building a modern digital presence, we&apos;d love to hear your vision. Reach out and let&apos;s create something exceptional together.
+          </p>
+        </motion.div>
+
+        {/* RIGHT COLUMN - GLASSMORPHISM CONTACT CARD */}
+        <motion.div variants={contactItemVariants} className="lg:col-span-6">
+          <div className="relative w-full">
+            {/* Soft backdrop glow */}
+            <div className="pointer-events-none absolute -inset-1 rounded-[28px] bg-gradient-to-b from-[#FF7A00]/20 via-[#FF7A00]/5 to-transparent blur-xl opacity-60" />
+
+            <div className="relative rounded-[24px] border border-[#FF7A00]/25 bg-[#0b0e17]/80 p-6 sm:p-8 md:p-10 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.7),0_0_35px_rgba(255,122,0,0.08)]">
+              {/* Subtle top border gradient */}
+              <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-[#FF7A00]/40 to-transparent" />
+
+              <div className="flex flex-col gap-4">
+                {contactItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <motion.a
+                      key={item.id}
+                      href={item.href}
+                      target={item.external ? "_blank" : undefined}
+                      rel={item.external ? "noopener noreferrer" : undefined}
+                      whileHover={{ x: 6 }}
+                      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+                      className="group flex items-start gap-4 sm:gap-5 rounded-2xl border border-white/[0.04] bg-white/[0.02] p-4 transition-all duration-300 hover:border-[#FF7A00]/40 hover:bg-white/[0.05] hover:shadow-[0_8px_25px_rgba(255,122,0,0.12)] cursor-pointer"
+                    >
+                      {/* Icon inside circular glass container */}
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#FF7A00]/30 bg-[#FF7A00]/10 text-[#FF7A00] transition-all duration-300 group-hover:scale-110 group-hover:border-[#FF7A00] group-hover:bg-[#FF7A00] group-hover:text-black group-hover:shadow-[0_0_20px_rgba(255,122,0,0.6)]">
+                        <Icon className="h-5 w-5" />
+                      </div>
+
+                      {/* Info Content */}
+                      <div className="flex flex-col gap-0.5 pr-2">
+                        <div className="flex items-center gap-2">
+                          <span className="font-poppins text-xs font-semibold uppercase tracking-wider text-[#FF7A00]/90">
+                            {item.title}
+                          </span>
+                        </div>
+                        <span className="font-geist text-base sm:text-lg font-medium text-white transition-colors duration-300 group-hover:text-[#FF7A00]">
+                          {item.value}
+                        </span>
+                        <p className="font-inter text-xs font-light text-[#a1a1aa] leading-normal mt-0.5">
+                          {item.caption}
+                        </p>
+                      </div>
+
+                      {/* Arrow indicator on hover */}
+                      <div className="ml-auto self-center text-[#a1a1aa] transition-all duration-300 group-hover:translate-x-1 group-hover:-translate-y-1 group-hover:text-[#FF7A00]">
+                        <ArrowUpRight className="h-5 w-5" />
+                      </div>
+                    </motion.a>
+                  );
+                })}
+              </div>
+
+              {/* Horizontal Divider */}
+              <div className="my-6 h-[1px] w-full bg-gradient-to-r from-transparent via-white/15 to-transparent sm:my-8" />
+
+              {/* CTA Button */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={openModal}
+                className="group relative flex w-full cursor-pointer items-center justify-center gap-3 overflow-hidden rounded-full bg-gradient-to-r from-[#FF7A00] via-[#FF8C00] to-[#FFA000] py-4 px-8 font-geist text-base font-semibold text-black shadow-[0_0_25px_rgba(255,122,0,0.35)] transition-all duration-300 hover:shadow-[0_0_45px_rgba(255,122,0,0.65)]"
+              >
+                <span className="relative z-10 font-semibold tracking-wide">Start Your Project</span>
+                <ArrowUpRight className="relative z-10 h-5 w-5 transition-transform duration-300 group-hover:translate-x-1 group-hover:-translate-y-1" />
+                <div className="absolute inset-0 bg-white/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
+      </motion.div>
+    </section>
+  );
+}
+
 export function Sections() {
   const { openModal } = useProjectInquiryModal();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -512,11 +697,13 @@ export function Sections() {
       const prefersReducedMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)"
       ).matches;
+      const isMobile = window.matchMedia("(max-width: 767px)").matches;
 
       const targets = gsap.utils.toArray<HTMLElement>(".reveal-up");
 
-      if (prefersReducedMotion) {
-        gsap.set(targets, { opacity: 1, y: 0 });
+      // On mobile or reduced motion: instantly show all elements, skip scroll triggers
+      if (prefersReducedMotion || isMobile) {
+        gsap.set(targets, { opacity: 1, y: 0, clearProps: "all" });
         return;
       }
 
@@ -533,6 +720,18 @@ export function Sections() {
           },
         });
       });
+
+      // Safety net: after 3s force all reveal-up elements visible in case
+      // ScrollTrigger fired before layout was ready (common on slow mobile)
+      const safetyTimer = setTimeout(() => {
+        targets.forEach((el) => {
+          if (parseFloat(getComputedStyle(el).opacity) < 0.5) {
+            gsap.set(el, { opacity: 1, y: 0, clearProps: "transform,opacity" });
+          }
+        });
+      }, 3000);
+
+      return () => clearTimeout(safetyTimer);
     },
     { scope: containerRef }
   );
@@ -671,25 +870,130 @@ export function Sections() {
       {/* ────────────────────────────────────────────────────────────
           04 — CONTACT
           ──────────────────────────────────────────────────────────── */}
-      <section
-        id="contact"
-        className="relative mx-auto flex min-h-[60vh] w-full max-w-[1600px] flex-col items-start justify-center gap-8 border-t border-white/10 px-6 py-24 md:px-14 lg:px-20"
-      >
-        <div className="reveal-up flex flex-col gap-6">
-          <span className="font-poppins text-xs uppercase tracking-[0.3em] text-accent">
-            04 — Contact
-          </span>
-          <h2 className="max-w-2xl font-geist text-[clamp(2rem,5vw,3.5rem)] font-medium leading-[1.05] tracking-tight text-text">
-            Let&apos;s build something that refuses to blend in.
-          </h2>
-          <MagneticButton onClick={openModal}>Start a Project</MagneticButton>
-        </div>
-      </section>
+      <ContactSection />
 
-      <footer className="border-t border-white/10 px-6 py-8 md:px-14 lg:px-20">
-        <p className="font-inter text-xs text-muted">
-          © {new Date().getFullYear()} A2 Production. All rights reserved.
-        </p>
+      <footer className="relative border-t border-white/10 bg-[#06080e] px-6 py-16 md:px-14 lg:px-20 overflow-hidden">
+        {/* Subtle orange accent glow at bottom right */}
+        <div className="pointer-events-none absolute bottom-0 right-0 h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.03)_0%,transparent_70%)] blur-3xl" />
+        
+        <div className="mx-auto max-w-[1600px]">
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-12 lg:gap-8 pb-12">
+            
+            {/* BRAND COLUMN */}
+            <div className="flex flex-col gap-5 lg:col-span-5">
+              <a
+                href="#"
+                className="group flex items-center gap-3.5 py-1 text-text transition-opacity duration-300 hover:opacity-90 w-fit"
+                aria-label="A2 Production"
+              >
+                <img
+                  src="/images/a2-brand-logo.png"
+                  alt="A2 Logo"
+                  className="h-8 md:h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105 filter drop-shadow-[0_2px_12px_rgba(217,119,6,0.35)]"
+                />
+                <span className="font-geist text-xs md:text-[13px] font-medium tracking-[0.38em] uppercase bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent transition-all duration-300 group-hover:tracking-[0.42em]">
+                  PRODUCTION
+                </span>
+              </a>
+              <p className="max-w-xs font-inter text-sm font-light text-[#a1a1aa] leading-relaxed">
+                Crafting premium cinematic visuals, brand identities, and high-performance digital products that refuse to blend in.
+              </p>
+            </div>
+
+            {/* EXPLORE COLUMN */}
+            <div className="flex flex-col gap-4 lg:col-span-2 lg:col-start-7">
+              <span className="font-poppins text-xs font-bold uppercase tracking-wider text-[#FF7A00]/80">
+                Explore
+              </span>
+              <ul className="flex flex-col gap-2.5">
+                <li>
+                  <a href="#services" className="font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-300 hover:text-white">
+                    Services
+                  </a>
+                </li>
+                <li>
+                  <a href="#about" className="font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-300 hover:text-white">
+                    About Team
+                  </a>
+                </li>
+                <li>
+                  <a href="#process" className="font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-300 hover:text-white">
+                    Our Process
+                  </a>
+                </li>
+                <li>
+                  <a href="#contact" className="font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-300 hover:text-white">
+                    Contact Us
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* CONNECT COLUMN */}
+            <div className="flex flex-col gap-4 lg:col-span-2">
+              <span className="font-poppins text-xs font-bold uppercase tracking-wider text-[#FF7A00]/80">
+                Connect
+              </span>
+              <ul className="flex flex-col gap-2.5">
+                <li>
+                  <a
+                    href="https://www.instagram.com/a2_production1?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-300 hover:text-white"
+                  >
+                    Instagram
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="https://wa.me/919330683966"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-300 hover:text-white"
+                  >
+                    WhatsApp
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:a2production440@gmail.com"
+                    className="font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-300 hover:text-white"
+                  >
+                    Email
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            {/* LOCATION COLUMN */}
+            <div className="flex flex-col gap-4 lg:col-span-3">
+              <span className="font-poppins text-xs font-bold uppercase tracking-wider text-[#FF7A00]/80">
+                Location
+              </span>
+              <p className="font-inter text-sm font-light text-[#a1a1aa] leading-relaxed">
+                India <br />
+                <span className="text-xs text-[#a1a1aa]/60">Serving clients worldwide</span>
+              </p>
+            </div>
+
+          </div>
+
+          {/* BOTTOM COPYRIGHT SECTION */}
+          <div className="border-t border-white/10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p className="font-inter text-xs text-[#a1a1aa]/60">
+              © {new Date().getFullYear()} A2 Production. All rights reserved.
+            </p>
+            <div className="flex items-center gap-6">
+              <a href="#" className="font-inter text-xs text-[#a1a1aa]/60 hover:text-[#FF7A00] transition-colors">
+                Privacy Policy
+              </a>
+              <a href="#" className="font-inter text-xs text-[#a1a1aa]/60 hover:text-[#FF7A00] transition-colors">
+                Terms of Service
+              </a>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
   );

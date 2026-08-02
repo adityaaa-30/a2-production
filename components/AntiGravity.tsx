@@ -143,118 +143,125 @@ export function AntiGravity() {
       const prefersReducedMotion = window.matchMedia(
         "(prefers-reduced-motion: reduce)"
       ).matches;
+      const isMobile = window.matchMedia("(max-width: 767px)").matches;
+
+      // On mobile: skip all scroll-driven animations, ensure everything is visible
+      if (prefersReducedMotion || isMobile) {
+        gsap.set([anti, gravity], { opacity: 1, y: 0 });
+        if (subtitle) gsap.set(subtitle, { opacity: 1, y: 0, filter: "blur(0px)" });
+        cardsRef.current.forEach((card) => {
+          if (card) gsap.set(card, { opacity: 1, y: 0, scale: 1, rotateX: 0, filter: "blur(0px)" });
+        });
+        return;
+      }
 
       // --- Title Letter Separation Scroll Scrub ---
-      if (!prefersReducedMotion) {
-        gsap.timeline({
-          scrollTrigger: {
-            trigger: titleContainerRef.current,
-            start: "top 70%",
-            end: "bottom 20%",
-            scrub: 0.8,
-          },
+      gsap.timeline({
+        scrollTrigger: {
+          trigger: titleContainerRef.current,
+          start: "top 70%",
+          end: "bottom 20%",
+          scrub: 0.8,
+        },
+      })
+        .to(anti, {
+          letterSpacing: "0.22em",
+          y: -30,
+          opacity: 1,
+          ease: "power2.out",
         })
-          .to(anti, {
+        .to(
+          gravity,
+          {
             letterSpacing: "0.22em",
-            y: -30,
+            y: 30,
             opacity: 1,
             ease: "power2.out",
-          })
-          .to(
-            gravity,
-            {
-              letterSpacing: "0.22em",
-              y: 30,
-              opacity: 1,
-              ease: "power2.out",
-            },
-            "<"
-          );
+          },
+          "<"
+        );
 
-        // Subtitle reveal
-        if (subtitle) {
-          gsap.fromTo(
-            subtitle,
-            { opacity: 0, y: 30, filter: "blur(8px)" },
-            {
-              opacity: 1,
-              y: 0,
-              filter: "blur(0px)",
-              duration: 1.2,
-              ease: "power3.out",
-              scrollTrigger: {
-                trigger: subtitle,
-                start: "top 85%",
-                toggleActions: "play none none reverse",
-              },
-            }
-          );
-        }
-
-        // --- Continuous Weightless Floating Animations for Cards ---
-        cardsRef.current.forEach((card, i) => {
-          if (!card) return;
-
-          // Scroll Entrance
-          gsap.fromTo(
-            card,
-            {
-              opacity: 0,
-              y: 80 + i * 20,
-              scale: 0.92,
-              rotateX: 12,
-              filter: "blur(12px)",
-            },
-            {
-              opacity: 1,
-              y: 0,
-              scale: 1,
-              rotateX: 0,
-              filter: "blur(0px)",
-              duration: 1.2,
-              ease: "power3.out",
-              scrollTrigger: {
-                trigger: card,
-                start: "top 85%",
-                toggleActions: "play none none reverse",
-              },
-            }
-          );
-
-          // Weightless Levitation (Sine Wave Bobbing)
-          gsap.to(card, {
-            y: i % 2 === 0 ? -16 : 16,
-            rotateZ: i % 2 === 0 ? -1.5 : 1.5,
-            duration: 4 + (i % 3) * 0.8,
-            repeat: -1,
-            yoyo: true,
-            ease: "sine.easeInOut",
-            delay: i * 0.3,
-          });
-        });
-
-        // --- Desktop Mouse 3D Parallax ---
-        if (window.innerWidth >= 768) {
-          const quickX = gsap.quickTo(titleContainerRef.current, "x", {
-            duration: 1,
+      // Subtitle reveal
+      if (subtitle) {
+        gsap.fromTo(
+          subtitle,
+          { opacity: 0, y: 30, filter: "blur(8px)" },
+          {
+            opacity: 1,
+            y: 0,
+            filter: "blur(0px)",
+            duration: 1.2,
             ease: "power3.out",
-          });
-          const quickY = gsap.quickTo(titleContainerRef.current, "y", {
-            duration: 1,
-            ease: "power3.out",
-          });
-
-          const handleMouseMove = (e: MouseEvent) => {
-            const relX = (e.clientX / window.innerWidth - 0.5) * 30;
-            const relY = (e.clientY / window.innerHeight - 0.5) * 20;
-            quickX(relX);
-            quickY(relY);
-          };
-
-          window.addEventListener("mousemove", handleMouseMove);
-          return () => window.removeEventListener("mousemove", handleMouseMove);
-        }
+            scrollTrigger: {
+              trigger: subtitle,
+              start: "top 85%",
+              toggleActions: "play none none reverse",
+            },
+          }
+        );
       }
+
+      // --- Continuous Weightless Floating Animations for Cards ---
+      cardsRef.current.forEach((card, i) => {
+        if (!card) return;
+
+        // Scroll Entrance
+        gsap.fromTo(
+          card,
+          {
+            opacity: 0,
+            y: 80 + i * 20,
+            scale: 0.92,
+            rotateX: 12,
+            filter: "blur(12px)",
+          },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            rotateX: 0,
+            filter: "blur(0px)",
+            duration: 1.2,
+            ease: "power3.out",
+            scrollTrigger: {
+              trigger: card,
+              start: "top 85%",
+              toggleActions: "play none none reverse",
+            },
+          }
+        );
+
+        // Weightless Levitation (Sine Wave Bobbing)
+        gsap.to(card, {
+          y: i % 2 === 0 ? -16 : 16,
+          rotateZ: i % 2 === 0 ? -1.5 : 1.5,
+          duration: 4 + (i % 3) * 0.8,
+          repeat: -1,
+          yoyo: true,
+          ease: "sine.easeInOut",
+          delay: i * 0.3,
+        });
+      });
+
+      // --- Desktop Mouse 3D Parallax ---
+      const quickX = gsap.quickTo(titleContainerRef.current, "x", {
+        duration: 1,
+        ease: "power3.out",
+      });
+      const quickY = gsap.quickTo(titleContainerRef.current, "y", {
+        duration: 1,
+        ease: "power3.out",
+      });
+
+      const handleMouseMove = (e: MouseEvent) => {
+        const relX = (e.clientX / window.innerWidth - 0.5) * 30;
+        const relY = (e.clientY / window.innerHeight - 0.5) * 20;
+        quickX(relX);
+        quickY(relY);
+      };
+
+      window.addEventListener("mousemove", handleMouseMove);
+      return () => window.removeEventListener("mousemove", handleMouseMove);
     },
     { scope: containerRef }
   );

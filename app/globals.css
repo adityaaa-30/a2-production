@@ -174,7 +174,10 @@ body {
 /* Scroll-reveal helper for placeholder sections                          */
 /* ---------------------------------------------------------------------- */
 
-.reveal-up {
+/* reveal-up: only hidden when JS has loaded and body.js-ready is set.
+   This prevents content from being permanently invisible if GSAP fails
+   or fires too late on real mobile devices (Android/iOS Safari). */
+body.js-ready .reveal-up {
   opacity: 0;
   transform: translateY(40px);
 }

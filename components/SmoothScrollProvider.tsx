@@ -6,6 +6,10 @@ import { gsap, ScrollTrigger } from "@/lib/gsap";
 
 export function SmoothScrollProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
+    // Signal to CSS that JS is running — enables .reveal-up hidden state
+    // so content is never permanently invisible if GSAP fires late/fails
+    document.body.classList.add("js-ready");
+
     const prefersReducedMotion = window.matchMedia(
       "(prefers-reduced-motion: reduce)"
     ).matches;
