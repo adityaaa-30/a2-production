@@ -107,7 +107,10 @@ export async function POST(request: NextRequest) {
       ? services.map((s) => (typeof s === "string" ? escapeHtml(s.trim()) : "")).filter(Boolean)
       : [];
 
-    const budgetOrTimeline = safeTimeline || (safeServices.length > 0 ? safeServices.join(", ") : "Not specified");
+    const timelineText = safeTimeline ? `Timeline: ${safeTimeline}` : "";
+    const servicesText = safeServices.length > 0 ? `Services: ${safeServices.join(", ")}` : "";
+    const budgetOrTimeline =
+      [timelineText, servicesText].filter(Boolean).join(" | ") || "Not specified";
 
     // ── 5. Server-Side Supabase DB Storage ──
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;

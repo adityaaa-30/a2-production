@@ -782,7 +782,7 @@ export default function AdminDashboardPage() {
                 <div className="flex items-center gap-2 sm:col-span-2">
                   <Calendar className="h-4 w-4 text-[#FF7A00]" />
                   <span className="text-white/70">
-                    Budget / Timeline: {selectedRequest.budget || "Not specified"}
+                    Services & Timeline: {selectedRequest.budget || "Not specified"}
                   </span>
                 </div>
               </div>
