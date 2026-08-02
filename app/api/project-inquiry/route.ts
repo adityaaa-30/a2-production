@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Resend } from "resend";
 import { createClient } from "@supabase/supabase-js";
 
-
 /**
- * Utility function to HTML-escape user inputs to prevent XSS in HTML emails.
+ * Utility function to HTML-escape user inputs.
  */
 function escapeHtml(str: string): string {
   return str
@@ -25,9 +23,8 @@ function sanitizeHeader(str: string): string {
 /**
  * POST /api/project-inquiry
  *
- * Secure server-side route that receives project inquiry data,
- * validates parameters, performs anti-bot checks, escapes HTML,
- * and sends email notifications via Resend API.
+ * Receives project inquiry data, validates, and saves to Supabase.
+ * Email notifications disabled — will be added after domain setup.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -45,7 +42,6 @@ export async function POST(request: NextRequest) {
       description,
       consent,
       websiteUrl,
-      formStartTime,
     } = body;
 
     // ── 1. Honeypot Check (Spam Bot Trap) ──
@@ -84,15 +80,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // HTML escape sanitized strings for template rendering (XSS Protection)
-    const safeFullName = escapeHtml(cleanFullName);
-    const safeBusinessName = escapeHtml(cleanBusinessName);
-    const safeBusinessType = escapeHtml(cleanBusinessType);
-    const safePhone = escapeHtml(cleanPhone);
-    const safeEmail = escapeHtml(cleanEmail);
-    const safeDescription = escapeHtml(cleanDescription);
-    const safeCode = escapeHtml(code);
-
+    // Escape for safe storage
     const safeTimeline = typeof timeline === "string" ? escapeHtml(timeline.trim()) : "";
     const safeServices = Array.isArray(services)
       ? services.map((s) => (typeof s === "string" ? escapeHtml(s.trim()) : "")).filter(Boolean)
@@ -103,7 +91,7 @@ export async function POST(request: NextRequest) {
     const budgetOrTimeline =
       [timelineText, servicesText].filter(Boolean).join(" | ") || "Not specified";
 
-    // ── 4. Server-Side Supabase DB Storage ──
+    // ── 4. Save to Supabase ──
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
     const supabaseKey =
       process.env.SUPABASE_SERVICE_ROLE_KEY ||
@@ -111,230 +99,44 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      console.error("[Supabase Config Error] Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY in environment.");
+      console.error("[Supabase Config Error] Missing Supabase URL or Key in environment.");
       return NextResponse.json(
-        { error: "Database keys missing in Vercel Environment Variables. Please check Settings -> Environment Variables in Vercel." },
+        { error: "Database configuration error. Please contact support." },
         { status: 500 }
       );
     }
 
-    try {
-      const dbClient = createClient(supabaseUrl.trim(), supabaseKey.trim());
-      const { error: dbError } = await dbClient
-        .from("project_requests")
-        .insert([
-          {
-            client_name: cleanFullName,
-            business_name: cleanBusinessName,
-            business_type: cleanBusinessType,
-            email: cleanEmail,
-            phone: `${code} ${cleanPhone}`,
-            project_description: cleanDescription,
-            budget: budgetOrTimeline,
-            status: "New",
-          },
-        ]);
+    const dbClient = createClient(supabaseUrl.trim(), supabaseKey.trim());
+    const { error: dbError } = await dbClient
+      .from("project_requests")
+      .insert([
+        {
+          client_name: cleanFullName,
+          business_name: cleanBusinessName,
+          business_type: cleanBusinessType,
+          email: cleanEmail,
+          phone: `${code} ${cleanPhone}`,
+          project_description: cleanDescription,
+          budget: budgetOrTimeline,
+          status: "New",
+        },
+      ]);
 
-      if (dbError) {
-        console.error("[Supabase DB Insert Error]:", JSON.stringify(dbError, null, 2));
-        return NextResponse.json(
-          { error: `Database Error: ${dbError.message || dbError.details || "Failed to save inquiry to Supabase"}` },
-          { status: 500 }
-        );
-      }
-
-      console.log("[Supabase DB Success] Saved inquiry for:", cleanEmail);
-    } catch (dbErr: any) {
-      console.error("[Supabase Exception]:", dbErr);
+    if (dbError) {
+      console.error("[Supabase Insert Error]:", JSON.stringify(dbError, null, 2));
       return NextResponse.json(
-        { error: `Database Connection Failed: ${dbErr?.message || "Check Supabase credentials"}` },
+        { error: `Failed to save your request. Please try again.` },
         { status: 500 }
       );
     }
 
-    // ── 6. Server-Side Email Delivery via Resend ──
-    const resendApiKey = process.env.RESEND_API_KEY;
-
-    // Guard: RESEND_API_KEY must be present and non-empty
-    if (!resendApiKey || resendApiKey.trim() === "") {
-      console.error(
-        "[Config Error] RESEND_API_KEY is not set or is empty. " +
-        "Ensure this variable is added to your Vercel project environment variables."
-      );
-      return NextResponse.json(
-        { error: "Email service is temporarily unavailable. Please try again later." },
-        { status: 503 }
-      );
-    }
-
-    // Safely resolve admin and from email — never let these be undefined or empty strings.
-    // On Vercel, env vars containing angle brackets (<>) must be set WITHOUT quotes in the
-    // dashboard (Vercel handles the raw value). If the value arrives as an empty string or
-    // undefined (e.g. the variable was not configured), we fall back to a safe hardcoded value.
-    const rawAdminEmail = process.env.ADMIN_EMAIL;
-    const rawFromEmail = process.env.RESEND_FROM_EMAIL;
-
-    const adminEmail =
-      rawAdminEmail && rawAdminEmail.trim() !== ""
-        ? rawAdminEmail.trim()
-        : "a2production440@gmail.com";
-
-    const fromEmail =
-      rawFromEmail && rawFromEmail.trim() !== ""
-        ? rawFromEmail.trim()
-        : "A2 Production <onboarding@resend.dev>";
-
-    // Validate that fromEmail is a non-empty string safe to use as a header value
-    if (typeof fromEmail !== "string" || fromEmail.length === 0) {
-      console.error(
-        "[Config Error] RESEND_FROM_EMAIL resolved to an invalid value:",
-        fromEmail
-      );
-      return NextResponse.json(
-        { error: "Email service misconfiguration. Please contact support." },
-        { status: 503 }
-      );
-    }
-
-    const submissionTime = new Date().toLocaleString("en-US", {
-      dateStyle: "full",
-      timeStyle: "medium",
-    });
-
-    {
-      // Block scope — always runs (resendApiKey already validated above)
-      const resend = new Resend(resendApiKey);
-
-      // Send Admin Alert Email
-      const { error: resendError } = await resend.emails.send({
-        from: fromEmail,
-        to: [adminEmail],
-        subject: `🎬 New Project Inquiry — ${cleanBusinessName} (${cleanFullName})`,
-        html: `
-          <!DOCTYPE html>
-          <html>
-            <head>
-              <meta charset="utf-8" />
-              <style>
-                body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #050507; color: #e5e5e5; margin: 0; padding: 20px; }
-                .container { max-width: 600px; margin: 0 auto; background: #0a0a0c; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 20px; overflow: hidden; }
-                .header { background: linear-gradient(135deg, #FF7A00 0%, #FF9A40 100%); padding: 32px 28px; text-align: left; }
-                .header h1 { margin: 0; font-size: 22px; color: #000; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
-                .header p { margin: 6px 0 0 0; font-size: 13px; color: rgba(0,0,0,0.8); font-weight: 500; }
-                .body { padding: 28px; }
-                .field-row { display: flex; border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding: 12px 0; }
-                .label { width: 150px; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.1em; }
-                .value { font-size: 14px; color: #fff; font-weight: 400; flex: 1; }
-                .value a { color: #FF7A00; text-decoration: none; }
-                .desc-box { margin-top: 12px; padding: 18px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; font-size: 14px; line-height: 1.6; color: #d4d4d4; white-space: pre-wrap; }
-                .footer { padding: 20px 28px; background: #070709; border-top: 1px solid rgba(255, 255, 255, 0.06); text-align: center; font-size: 12px; color: #666; }
-              </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header">
-                  <h1>New Project Inquiry</h1>
-                  <p>A2 Production — Project Submission Alert</p>
-                </div>
-                <div class="body">
-                  <div class="field-row">
-                    <div class="label">Client Name</div>
-                    <div class="value"><strong>${safeFullName}</strong></div>
-                  </div>
-                  <div class="field-row">
-                    <div class="label">Business Name</div>
-                    <div class="value">${safeBusinessName}</div>
-                  </div>
-                  <div class="field-row">
-                    <div class="label">Business Type</div>
-                    <div class="value">${safeBusinessType}</div>
-                  </div>
-                  <div class="field-row">
-                    <div class="label">Email</div>
-                    <div class="value"><a href="mailto:${safeEmail}">${safeEmail}</a></div>
-                  </div>
-                  <div class="field-row">
-                    <div class="label">Phone</div>
-                    <div class="value"><a href="tel:${safeCode} ${safePhone}">${safeCode} ${safePhone}</a></div>
-                  </div>
-                  <div class="field-row">
-                    <div class="label">Budget / Timeline</div>
-                    <div class="value">${budgetOrTimeline}</div>
-                  </div>
-                  <div class="field-row">
-                    <div class="label">Submission Time</div>
-                    <div class="value" style="color: #FF7A00;">${submissionTime}</div>
-                  </div>
-
-                  <div style="margin-top: 24px;">
-                    <div class="label">Project Description</div>
-                    <div class="desc-box">${safeDescription}</div>
-                  </div>
-                </div>
-                <div class="footer">
-                  This notification was automatically sent by A2 Production system.
-                </div>
-              </div>
-            </body>
-          </html>
-        `,
-      });
-
-      if (resendError) {
-        console.error("[Resend Admin Email Error]:", JSON.stringify(resendError, null, 2));
-      }
-
-      // Send Client Confirmation Email (best-effort, fails silently if unverified domain)
-      try {
-        const { error: clientEmailError } = await resend.emails.send({
-          from: fromEmail,
-          to: [cleanEmail],
-          subject: "We've Received Your Project Inquiry | A2 Production",
-          html: `
-            <!DOCTYPE html>
-            <html>
-              <body style="font-family: Arial, sans-serif; background:#111; color:#fff; padding:40px;">
-                <div style="max-width:600px;margin:auto;background:#1b1b1b;padding:30px;border-radius:12px;">
-                  <h2 style="color:#FF7A00;">Thank You, ${safeFullName}! 🎉</h2>
-
-                  <p>We have successfully received your project inquiry.</p>
-
-                  <p>Our team will carefully review your requirements and contact you within the next 24 hours.</p>
-
-                  <hr style="border:none;border-top:1px solid #333;margin:25px 0;" />
-
-                  <h3>Your Submission Summary</h3>
-
-                  <p><strong>Business:</strong> ${safeBusinessName}</p>
-                  <p><strong>Business Type:</strong> ${safeBusinessType}</p>
-                  <p><strong>Email:</strong> ${safeEmail}</p>
-                  <p><strong>Phone:</strong> ${safeCode} ${safePhone}</p>
-
-                  <br>
-
-                  <p>Thank you for choosing <strong>A2 Production</strong>.</p>
-
-                  <p>Regards,<br><strong>A2 Production Team</strong></p>
-                </div>
-              </body>
-            </html>
-          `,
-        });
-
-        if (clientEmailError) {
-          console.error("[Resend Client Email Error]:", JSON.stringify(clientEmailError, null, 2));
-        }
-      } catch (clientErr) {
-        console.error("[Resend Client Exception]:", clientErr);
-      }
-
-    }
+    console.log("[Success] Project inquiry saved for:", cleanEmail);
 
     return NextResponse.json({ success: true });
   } catch (error: unknown) {
     console.error("[Project Inquiry Error]:", error);
     return NextResponse.json(
-      { error: "An unexpected error occurred while processing your request." },
+      { error: "An unexpected error occurred. Please try again." },
       { status: 500 }
     );
   }
