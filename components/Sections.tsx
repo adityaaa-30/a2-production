@@ -692,50 +692,6 @@ export function Sections() {
   const { openModal } = useProjectInquiryModal();
   const containerRef = useRef<HTMLDivElement>(null);
 
-  useGSAP(
-    () => {
-      const prefersReducedMotion = window.matchMedia(
-        "(prefers-reduced-motion: reduce)"
-      ).matches;
-      const isMobile = window.matchMedia("(max-width: 767px)").matches;
-
-      const targets = gsap.utils.toArray<HTMLElement>(".reveal-up");
-
-      // On mobile or reduced motion: instantly show all elements, skip scroll triggers
-      if (prefersReducedMotion || isMobile) {
-        gsap.set(targets, { opacity: 1, y: 0, clearProps: "all" });
-        return;
-      }
-
-      targets.forEach((el) => {
-        gsap.to(el, {
-          opacity: 1,
-          y: 0,
-          duration: 1,
-          ease: "power3.out",
-          scrollTrigger: {
-            trigger: el,
-            start: "top 82%",
-            toggleActions: "play none none reverse",
-          },
-        });
-      });
-
-      // Safety net: after 3s force all reveal-up elements visible in case
-      // ScrollTrigger fired before layout was ready (common on slow mobile)
-      const safetyTimer = setTimeout(() => {
-        targets.forEach((el) => {
-          if (parseFloat(getComputedStyle(el).opacity) < 0.5) {
-            gsap.set(el, { opacity: 1, y: 0, clearProps: "transform,opacity" });
-          }
-        });
-      }, 3000);
-
-      return () => clearTimeout(safetyTimer);
-    },
-    { scope: containerRef }
-  );
-
   return (
     <div ref={containerRef} className="relative bg-background text-text selection:bg-[#FF7A00]/30">
       {/* ────────────────────────────────────────────────────────────
@@ -749,7 +705,13 @@ export function Sections() {
         <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-[radial-gradient(circle,rgba(201,138,61,0.04)_0%,transparent_70%)] blur-3xl" />
 
         {/* Section Header */}
-        <div className="reveal-up flex flex-col gap-6 md:max-w-3xl">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.8, ease: [0.215, 0.61, 0.355, 1] }}
+          className="flex flex-col gap-6 md:max-w-3xl"
+        >
           <div className="inline-flex items-center gap-2 rounded-full border border-[#C98A3D]/20 bg-[#C98A3D]/[0.04] px-4 py-1.5 backdrop-blur-md w-fit">
             <span className="h-2 w-2 rounded-full bg-[#C98A3D] animate-pulse" />
             <span className="font-poppins text-xs font-medium uppercase tracking-[0.35em] text-[#C98A3D]">
@@ -764,7 +726,7 @@ export function Sections() {
           <p className="max-w-2xl font-inter text-base font-light text-muted leading-relaxed md:text-lg">
             Whether you&apos;re a local business, startup, creator, or established company, we create premium digital experiences that strengthen your online presence and help your business stand out.
           </p>
-        </div>
+        </motion.div>
 
         {/* 4-Card Responsive Grid */}
         <motion.div
@@ -831,7 +793,13 @@ export function Sections() {
         <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[900px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.04)_0%,transparent_70%)] blur-3xl" />
 
         {/* Section Header */}
-        <div className="reveal-up flex flex-col gap-6 md:max-w-3xl">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.8, ease: [0.215, 0.61, 0.355, 1] }}
+          className="flex flex-col gap-6 md:max-w-3xl"
+        >
           <div className="inline-flex items-center gap-2 rounded-full border border-[#FF7A00]/25 bg-[#FF7A00]/[0.05] px-4 py-1.5 backdrop-blur-md w-fit">
             <span className="h-2 w-2 rounded-full bg-[#FF7A00] animate-pulse" />
             <span className="font-poppins text-xs font-medium uppercase tracking-[0.35em] text-[#FF7A00]">
@@ -846,7 +814,7 @@ export function Sections() {
           <p className="max-w-2xl font-inter text-base font-light text-[#a1a1aa] leading-relaxed md:text-lg">
             A passionate team of creators, filmmakers and developers dedicated to building cinematic experiences, powerful digital products and unforgettable visual stories.
           </p>
-        </div>
+        </motion.div>
 
         {/* 3 Team Member Cards (Desktop: 3 in 1 row, Tablet: 2 + 1, Mobile: 1 col) */}
         <motion.div
