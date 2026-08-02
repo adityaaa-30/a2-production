@@ -106,15 +106,55 @@ export async function POST(request: NextRequest) {
 
     // ── 5. Server-Side Email Delivery via Resend ──
     const resendApiKey = process.env.RESEND_API_KEY;
-    const adminEmail = process.env.ADMIN_EMAIL || "opsharmaa2@gmail.com";
-    const fromEmail = process.env.RESEND_FROM_EMAIL || "A2 Production <onboarding@resend.dev>";
+
+    // Guard: RESEND_API_KEY must be present and non-empty
+    if (!resendApiKey || resendApiKey.trim() === "") {
+      console.error(
+        "[Config Error] RESEND_API_KEY is not set or is empty. " +
+        "Ensure this variable is added to your Vercel project environment variables."
+      );
+      return NextResponse.json(
+        { error: "Email service is temporarily unavailable. Please try again later." },
+        { status: 503 }
+      );
+    }
+
+    // Safely resolve admin and from email — never let these be undefined or empty strings.
+    // On Vercel, env vars containing angle brackets (<>) must be set WITHOUT quotes in the
+    // dashboard (Vercel handles the raw value). If the value arrives as an empty string or
+    // undefined (e.g. the variable was not configured), we fall back to a safe hardcoded value.
+    const rawAdminEmail = process.env.ADMIN_EMAIL;
+    const rawFromEmail = process.env.RESEND_FROM_EMAIL;
+
+    const adminEmail =
+      rawAdminEmail && rawAdminEmail.trim() !== ""
+        ? rawAdminEmail.trim()
+        : "a2production440@gmail.com";
+
+    const fromEmail =
+      rawFromEmail && rawFromEmail.trim() !== ""
+        ? rawFromEmail.trim()
+        : "A2 Production <onboarding@resend.dev>";
+
+    // Validate that fromEmail is a non-empty string safe to use as a header value
+    if (typeof fromEmail !== "string" || fromEmail.length === 0) {
+      console.error(
+        "[Config Error] RESEND_FROM_EMAIL resolved to an invalid value:",
+        fromEmail
+      );
+      return NextResponse.json(
+        { error: "Email service misconfiguration. Please contact support." },
+        { status: 503 }
+      );
+    }
 
     const submissionTime = new Date().toLocaleString("en-US", {
       dateStyle: "full",
       timeStyle: "medium",
     });
 
-    if (resendApiKey) {
+    {
+      // Block scope — always runs (resendApiKey already validated above)
       const resend = new Resend(resendApiKey);
 
       // Send Admin Alert Email
@@ -239,12 +279,6 @@ export async function POST(request: NextRequest) {
       if (clientEmailError) {
         console.error("[Client Email Delivery Error]:", clientEmailError);
       }
-    } else {
-      console.warn("RESEND_API_KEY missing in environment. Email notification skipped.");
-      return NextResponse.json(
-        { error: "Email service is temporarily unavailable." },
-        { status: 503 }
-      );
     }
 
     return NextResponse.json({ success: true });
