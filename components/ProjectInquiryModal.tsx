@@ -8,12 +8,10 @@ import { z } from "zod";
 import {
   X,
   ChevronDown,
-  Upload,
   Check,
   Search,
   ArrowUpRight,
   Loader2,
-  FileText,
 } from "lucide-react";
 
 
@@ -66,11 +64,7 @@ const COUNTRY_CODES = [
   { code: "+92", flag: "🇵🇰", country: "Pakistan" },
 ];
 
-const ACCEPTED_FILE_TYPES = [
-  "image/jpeg", "image/png", "application/pdf", "application/zip",
-  "application/x-zip-compressed",
-];
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+
 
 /* ═══════════════════════════════════════════════════════════════
    SCHEMA
@@ -484,10 +478,7 @@ export function ProjectInquiryModal({
   onClose,
 }: ProjectInquiryModalProps) {
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [fileError, setFileError] = useState("");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-hide toast notification after 5 seconds
@@ -543,8 +534,6 @@ export function ProjectInquiryModal({
     // Delay reset to after exit animation
     setTimeout(() => {
       setStatus("idle");
-      setUploadedFile(null);
-      setFileError("");
       reset();
     }, 400);
   }, [onClose, reset, status]);
@@ -558,21 +547,7 @@ export function ProjectInquiryModal({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isOpen, handleClose]);
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setFileError("");
-    const file = e.target.files?.[0];
-    if (!file) return;
 
-    if (!ACCEPTED_FILE_TYPES.includes(file.type)) {
-      setFileError("Only JPG, PNG, PDF, and ZIP files are accepted.");
-      return;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      setFileError("File size must be under 20MB.");
-      return;
-    }
-    setUploadedFile(file);
-  };
 
   const onSubmit = async (data: FormData) => {
     // Prevent duplicate submissions while loading
@@ -659,8 +634,6 @@ export function ProjectInquiryModal({
 
       // Reset the form after success
       reset();
-      setUploadedFile(null);
-      setFileError("");
 
       setStatus("success");
     } catch (err: unknown) {
@@ -694,8 +667,6 @@ export function ProjectInquiryModal({
 
   const handleSubmitAnother = () => {
     setStatus("idle");
-    setUploadedFile(null);
-    setFileError("");
     reset();
     scrollContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -1015,64 +986,7 @@ export function ProjectInquiryModal({
                             />
                           </FieldWrapper>
 
-                          {/* File Upload */}
-                          <motion.div
-                            custom={9}
-                            variants={fieldVariants}
-                            className="flex flex-col gap-2"
-                          >
-                            <label className="font-poppins text-xs font-medium uppercase tracking-[0.2em] text-white/60">
-                              Optional Upload
-                            </label>
-                            <div
-                              onClick={() => fileInputRef.current?.click()}
-                              className="group/upload flex cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-6 py-8 transition-all duration-300 hover:border-[#FF7A00]/30 hover:bg-white/[0.04]"
-                            >
-                              {uploadedFile ? (
-                                <div className="flex items-center gap-3">
-                                  <FileText className="h-5 w-5 text-[#FF7A00]" />
-                                  <span className="font-inter text-sm text-white/70">
-                                    {uploadedFile.name}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setUploadedFile(null);
-                                      if (fileInputRef.current) fileInputRef.current.value = "";
-                                    }}
-                                    className="ml-2 text-white/30 hover:text-red-400"
-                                  >
-                                    <X className="h-4 w-4" />
-                                  </button>
-                                </div>
-                              ) : (
-                                <>
-                                  <Upload className="h-6 w-6 text-white/20 transition-colors duration-300 group-hover/upload:text-[#FF7A00]/60" />
-                                  <p className="font-inter text-xs text-white/30 text-center">
-                                    Upload reference images, logo, brand guide or
-                                    inspiration files
-                                    <br />
-                                    <span className="text-white/20">
-                                      JPG, PNG, PDF, ZIP — Max 20MB
-                                    </span>
-                                  </p>
-                                </>
-                              )}
-                            </div>
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept=".jpg,.jpeg,.png,.pdf,.zip"
-                              onChange={handleFileChange}
-                              className="hidden"
-                            />
-                            {fileError && (
-                              <p className="font-inter text-xs text-red-400">
-                                {fileError}
-                              </p>
-                            )}
-                          </motion.div>
+
 
                           {/* Consent */}
                           <motion.div
