@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Menu, X } from "lucide-react";
 import { MagneticButton } from "@/components/ui/MagneticButton";
-import { ProjectInquiryModal } from "@/components/ProjectInquiryModal";
+import { useProjectInquiryModal } from "@/components/ProjectInquiryContext";
 
 const LINKS = [
   { label: "Services", href: "#services" },
@@ -16,7 +16,7 @@ const LINKS = [
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
+  const { openModal } = useProjectInquiryModal();
 
   useEffect(() => {
     const onScroll = () => {
@@ -90,7 +90,7 @@ export function Navbar() {
             <MagneticButton
               variant="ghost"
               className="px-6 py-3 text-xs"
-              onClick={() => setModalOpen(true)}
+              onClick={openModal}
             >
               Start a Project
             </MagneticButton>
@@ -131,7 +131,7 @@ export function Navbar() {
                   <button
                     onClick={() => {
                       setOpen(false);
-                      setModalOpen(true);
+                      openModal();
                     }}
                     className="mt-2 w-full rounded-full border border-[#FF7A00]/50 bg-[#FF7A00]/10 px-6 py-3.5 font-poppins text-sm font-semibold uppercase tracking-[0.15em] text-[#FF7A00] transition-all duration-300 hover:bg-[#FF7A00] hover:text-black"
                   >
@@ -143,12 +143,6 @@ export function Navbar() {
           )}
         </AnimatePresence>
       </header>
-
-      {/* Project Inquiry Modal */}
-      <ProjectInquiryModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-      />
     </>
   );
 }

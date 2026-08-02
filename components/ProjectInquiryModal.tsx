@@ -15,8 +15,7 @@ import {
   Loader2,
   FileText,
 } from "lucide-react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 
 /* ═══════════════════════════════════════════════════════════════
    CONSTANTS
@@ -77,24 +76,44 @@ const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
    SCHEMA
    ═══════════════════════════════════════════════════════════════ */
 
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
 const formSchema = z.object({
-  fullName: z.string().min(1, "Full name is required"),
-  businessName: z.string().min(1, "Business name is required"),
-  businessType: z.string().min(1, "Please select a business type"),
+  fullName: z
+    .string()
+    .transform((v) => v.trim())
+    .refine((v) => v.length >= 2, "Full name must be at least 2 characters")
+    .refine((v) => v.length <= 100, "Full name must not exceed 100 characters"),
+  businessName: z
+    .string()
+    .transform((v) => v.trim())
+    .refine((v) => v.length >= 2, "Business name must be at least 2 characters")
+    .refine((v) => v.length <= 150, "Business name must not exceed 150 characters"),
+  businessType: z
+    .string()
+    .transform((v) => v.trim())
+    .refine((v) => v.length >= 1, "Please select a business type")
+    .refine((v) => v.length <= 100, "Invalid business type"),
   phoneCode: z.string(),
   phoneNumber: z
     .string()
-    .min(1, "Phone number is required")
-    .regex(/^[0-9]{7,15}$/, "Enter a valid phone number"),
+    .transform((v) => v.trim())
+    .refine((v) => v.length >= 1, "Phone number is required")
+    .refine((v) => /^[0-9]{10,15}$/.test(v), "Phone number must contain 10-15 digits"),
   email: z
     .string()
-    .min(1, "Email is required")
-    .email("Enter a valid email address"),
+    .transform((v) => v.trim())
+    .refine((v) => v.length > 0, "Email is required")
+    .refine((v) => v.length <= 100, "Email must not exceed 100 characters")
+    .refine((v) => EMAIL_REGEX.test(v), "Enter a valid email address"),
   timeline: z.string().optional(),
   services: z.array(z.string()).optional(),
   description: z
     .string()
-    .min(50, "Please provide at least 50 characters describing your project"),
+    .transform((v) => v.trim())
+    .refine((v) => v.length >= 20, "Project description must be at least 20 characters")
+    .refine((v) => v.length <= 3000, "Project description must not exceed 3000 characters"),
+  websiteUrl: z.string().optional(),
   consent: z.literal(true, {
     errorMap: () => ({ message: "You must agree to be contacted" }),
   }),
@@ -467,8 +486,17 @@ export function ProjectInquiryModal({
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState("");
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-hide toast notification after 5 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const {
     register,
@@ -493,11 +521,14 @@ export function ProjectInquiryModal({
     },
   });
 
-  // Lock body and html scroll when modal is open
+  const [formStartTime, setFormStartTime] = useState<number>(0);
+
+  // Lock body and html scroll when modal is open and track form start time
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
       document.documentElement.style.overflow = "hidden";
+      setFormStartTime(Date.now());
     }
     return () => {
       document.body.style.overflow = "";
@@ -544,30 +575,136 @@ export function ProjectInquiryModal({
   };
 
   const onSubmit = async (data: FormData) => {
+    // Prevent duplicate submissions while loading
+    if (status === "submitting") return;
+
+    // 1. Honeypot Check (Anti-Bot Protection)
+    if (data.websiteUrl && data.websiteUrl.trim() !== "") {
+      console.warn("Spam submission intercepted by honeypot.");
+      setStatus("success");
+      reset();
+      return;
+    }
+
+    // 2. Client-Side Rate Limiting Check (15s minimum gap between requests)
+    const RATE_LIMIT_KEY = "a2_project_inquiry_last_submission";
+    const MIN_INTERVAL_MS = 15000;
+    const lastSubmission = typeof window !== "undefined" ? localStorage.getItem(RATE_LIMIT_KEY) : null;
+    const now = Date.now();
+
+    if (lastSubmission) {
+      const elapsed = now - parseInt(lastSubmission, 10);
+      if (elapsed < MIN_INTERVAL_MS) {
+        const waitSeconds = Math.ceil((MIN_INTERVAL_MS - elapsed) / 1000);
+        setToast({
+          message: `Please wait ${waitSeconds} seconds before submitting another request.`,
+          type: "error",
+        });
+        return;
+      }
+    }
+
+    // 3. Strict Input Sanitization & Boundary Validation
+    const clientName = data.fullName.trim();
+    const businessName = data.businessName.trim();
+    const businessType = data.businessType.trim();
+    const email = data.email.trim();
+    const phoneNumber = data.phoneNumber.trim();
+    const description = data.description.trim();
+
+    if (
+      !clientName || clientName.length < 2 || clientName.length > 100 ||
+      !businessName || businessName.length < 2 || businessName.length > 150 ||
+      !businessType || businessType.length < 1 || businessType.length > 100 ||
+      !email || email.length > 100 || !EMAIL_REGEX.test(email) ||
+      !phoneNumber || !/^[0-9]{10,15}$/.test(phoneNumber) ||
+      !description || description.length < 20 || description.length > 3000
+    ) {
+      setToast({
+        message: "Invalid submission data. Please check all fields and try again.",
+        type: "error",
+      });
+      return;
+    }
+
     setStatus("submitting");
+    setToast(null);
 
     try {
-      // Save to Firestore
-      await addDoc(collection(db, "project-inquiries"), {
-        ...data,
-        fileName: uploadedFile?.name || null,
-        fileSize: uploadedFile?.size || null,
-        createdAt: serverTimestamp(),
+      // 4. Insert data into Supabase `project_requests` table
+      const { error: supabaseError } = await supabase
+        .from("project_requests")
+        .insert([
+          {
+            client_name: clientName,
+            business_name: businessName,
+            business_type: businessType,
+            email: email,
+            phone: `${data.phoneCode} ${phoneNumber}`,
+            project_description: description,
+            budget: data.timeline || (data.services && data.services.length > 0 ? data.services.join(", ") : null),
+            status: "New",
+          },
+        ]);
+
+      if (supabaseError) {
+        throw supabaseError;
+      }
+
+      // Record successful submission timestamp for rate limiting
+      if (typeof window !== "undefined") {
+        localStorage.setItem(RATE_LIMIT_KEY, Date.now().toString());
+      }
+
+      // 5. Send email via API
+      try {
+        const emailRes = await fetch("/api/project-inquiry", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...data, formStartTime }),
+        });
+
+        if (!emailRes.ok) {
+          const emailBody = await emailRes.json().catch(() => null);
+          const emailErrMsg = emailBody?.error || `Email API returned ${emailRes.status}`;
+          console.error("Email API error:", emailErrMsg);
+        }
+      } catch (err) {
+        console.error("Email API network error:", err);
+      }
+
+      // Show success toast
+      setToast({
+        message: "Project request submitted successfully!",
+        type: "success",
       });
 
-      // Send email via API
-      await fetch("/api/project-inquiry", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
+      // Reset the form after success
+      reset();
+      setUploadedFile(null);
+      setFileError("");
 
       setStatus("success");
-    } catch (err) {
-      console.error("Submission error:", err);
+    } catch (err: unknown) {
       setStatus("error");
-      // Recover after 3s
-      setTimeout(() => setStatus("idle"), 3000);
+
+      let errorMessage = "Failed to submit project request. Please try again.";
+      if (err && typeof err === "object" && "message" in err && typeof (err as { message: unknown }).message === "string") {
+        errorMessage = (err as { message: string }).message;
+      }
+
+      if (process.env.NODE_ENV === "development") {
+        console.error("Submission failed:", err);
+      }
+
+      // Show error toast
+      setToast({
+        message: errorMessage,
+        type: "error",
+      });
+
+      // Recover status after 4s
+      setTimeout(() => setStatus("idle"), 4000);
     }
   };
 
@@ -594,6 +731,37 @@ export function ProjectInquiryModal({
             if (e.target === e.currentTarget) handleClose();
           }}
         >
+          {/* ── Toast Notification ── */}
+          <AnimatePresence>
+            {toast && (
+              <motion.div
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                className={`fixed top-6 left-1/2 -translate-x-1/2 z-[130] flex items-center gap-3 rounded-2xl px-6 py-4 border shadow-2xl backdrop-blur-2xl font-inter text-sm max-w-md w-[90%] sm:w-auto ${
+                  toast.type === "success"
+                    ? "border-[#FF7A00]/40 bg-[#0a0a0c]/95 text-white shadow-[0_0_30px_rgba(255,122,0,0.25)]"
+                    : "border-red-500/40 bg-[#0a0a0c]/95 text-white shadow-[0_0_30px_rgba(239,68,68,0.25)]"
+                }`}
+              >
+                {toast.type === "success" ? (
+                  <Check className="h-5 w-5 text-[#FF7A00] shrink-0" />
+                ) : (
+                  <X className="h-5 w-5 text-red-400 shrink-0" />
+                )}
+                <span className="flex-1">{toast.message}</span>
+                <button
+                  type="button"
+                  onClick={() => setToast(null)}
+                  className="ml-2 text-white/40 hover:text-white transition-colors"
+                  aria-label="Close toast"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
           <motion.div
             variants={modalVariants}
             initial="hidden"
@@ -698,6 +866,19 @@ export function ProjectInquiryModal({
                           className="flex flex-col gap-7"
                           noValidate
                         >
+                          {/* Honeypot hidden input field for anti-bot protection */}
+                          <div
+                            className="absolute opacity-0 pointer-events-none -z-10 h-0 w-0 overflow-hidden"
+                            aria-hidden="true"
+                          >
+                            <input
+                              type="text"
+                              {...register("websiteUrl")}
+                              tabIndex={-1}
+                              autoComplete="off"
+                              placeholder="Do not fill this out"
+                            />
+                          </div>
                           {/* Row: Name + Business */}
                           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                             <FieldWrapper

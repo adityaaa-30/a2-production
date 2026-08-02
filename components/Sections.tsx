@@ -52,6 +52,7 @@ function LinkedinIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 import { gsap, useGSAP } from "@/lib/gsap";
 import { MagneticButton } from "@/components/ui/MagneticButton";
+import { useProjectInquiryModal } from "@/components/ProjectInquiryContext";
 
 interface BuildCard {
   number: string;
@@ -503,6 +504,7 @@ function TeamCard({ member }: { member: TeamMember }) {
 }
 
 export function Sections() {
+  const { openModal } = useProjectInquiryModal();
   const containerRef = useRef<HTMLDivElement>(null);
 
   useGSAP(
@@ -680,7 +682,7 @@ export function Sections() {
           <h2 className="max-w-2xl font-geist text-[clamp(2rem,5vw,3.5rem)] font-medium leading-[1.05] tracking-tight text-text">
             Let&apos;s build something that refuses to blend in.
           </h2>
-          <MagneticButton>Start a Project</MagneticButton>
+          <MagneticButton onClick={openModal}>Start a Project</MagneticButton>
         </div>
       </section>
 
