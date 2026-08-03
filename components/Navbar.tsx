@@ -99,6 +99,7 @@ export function Navbar() {
   // Lock body scroll while the mobile menu is open & handle Escape key
   useEffect(() => {
     if (open) {
+      window.dispatchEvent(new CustomEvent("a2:mobile-menu-open"));
       document.body.style.overflow = "hidden";
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Escape") handleClose();

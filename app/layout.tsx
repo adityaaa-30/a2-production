@@ -3,7 +3,6 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
 import { Navbar } from "@/components/Navbar";
-import { Preloader } from "@/components/Preloader";
 
 import { ProjectInquiryProvider } from "@/components/ProjectInquiryContext";
 
@@ -34,7 +33,6 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} w-full antialiased`}
     >
       <body className="min-h-screen w-full flex flex-col bg-background text-[#f4f4f5] overflow-x-hidden">
-        <Preloader />
         <SmoothScrollProvider>
           <ProjectInquiryProvider>
             <Navbar />

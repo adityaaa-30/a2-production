@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useSyncExternalStore } from "react";
 import SplitType from "split-type";
-import { ArrowDown } from "lucide-react";
+import { ArrowDown, Volume2, VolumeX } from "lucide-react";
 import { gsap, useGSAP } from "@/lib/gsap";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 import { useProjectInquiryModal } from "@/components/ProjectInquiryContext";
 
@@ -74,8 +74,91 @@ const MOBILE_SCENES: MobileScene[] = [
 ];
 
 const SCENE_DURATION = 4000; // ms per scene
+const HERO_AUDIO_SRC = "/audio/hero-scroll-music.mp3";
+const HERO_AUDIO_MAX_VOLUME = 0.55;
+const HERO_AUDIO_FADE_SECONDS = 0.9;
 
-const sceneVariants = {
+type HeroAudioController = {
+  audio: HTMLAudioElement;
+  fadeTo: (volume: number, duration?: number, onComplete?: () => void) => void;
+  play: () => Promise<boolean>;
+  stop: (reset?: boolean) => void;
+  cleanup: () => void;
+};
+
+function subscribeToMobilePreference(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+
+  const mediaQuery = window.matchMedia("(max-width: 767px)");
+  mediaQuery.addEventListener("change", onStoreChange);
+
+  return () => mediaQuery.removeEventListener("change", onStoreChange);
+}
+
+function getMobileSnapshot() {
+  if (typeof window === "undefined") return null;
+  return window.matchMedia("(max-width: 767px)").matches;
+}
+
+function getMobileServerSnapshot() {
+  return null;
+}
+function createHeroAudioController(audioElement?: HTMLAudioElement): HeroAudioController {
+  const audio = audioElement ?? new Audio(HERO_AUDIO_SRC);
+  const ownsAudio = !audioElement;
+
+  audio.loop = true;
+  audio.preload = "auto";
+  audio.volume = 0;
+  audio.muted = false;
+
+  const fadeTo: HeroAudioController["fadeTo"] = (
+    volume,
+    duration = HERO_AUDIO_FADE_SECONDS,
+    onComplete
+  ) => {
+    gsap.to(audio, {
+      volume: Math.max(0, Math.min(volume, HERO_AUDIO_MAX_VOLUME)),
+      duration,
+      ease: "power2.out",
+      overwrite: true,
+      onComplete,
+    });
+  };
+
+  const play = async () => {
+    audio.muted = false;
+    if (!audio.paused) return true;
+
+    try {
+      await audio.play();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const stop = (reset = false) => {
+    fadeTo(0, HERO_AUDIO_FADE_SECONDS, () => {
+      audio.pause();
+      if (reset) audio.currentTime = 0;
+    });
+  };
+
+  const cleanup = () => {
+    gsap.killTweensOf(audio);
+    audio.pause();
+
+    if (ownsAudio) {
+      audio.src = "";
+      audio.load();
+    }
+  };
+
+  return { audio, fadeTo, play, stop, cleanup };
+}
+
+const sceneVariants: Variants = {
   enter: { opacity: 0, y: 30, filter: "blur(6px)" },
   center: {
     opacity: 1,
@@ -83,7 +166,7 @@ const sceneVariants = {
     filter: "blur(0px)",
     transition: {
       duration: 0.7,
-      ease: [0.25, 0.46, 0.45, 0.94] as any,
+      ease: [0.25, 0.46, 0.45, 0.94],
       staggerChildren: 0.08,
       delayChildren: 0.1,
     },
@@ -94,14 +177,14 @@ const sceneVariants = {
     filter: "blur(4px)",
     transition: {
       duration: 0.5,
-      ease: [0.55, 0.085, 0.68, 0.53] as any,
+      ease: [0.55, 0.085, 0.68, 0.53],
     },
   },
 };
 
-const lineVariants = {
+const lineVariants: Variants = {
   enter: { opacity: 0, y: 20 },
-  center: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" as any } },
+  center: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
   exit: { opacity: 0 },
 };
 
@@ -160,11 +243,11 @@ function MobileHero({ openModal }: { openModal: () => void }) {
     }, SCENE_DURATION);
     return () => clearInterval(timer);
   }, []);
-
   const scene = MOBILE_SCENES[activeScene];
 
   return (
     <section
+      id="hero-section"
       className="relative w-full overflow-hidden bg-background"
       style={{ height: "100svh", minHeight: "100dvh" }}
       aria-label="A2 Production — Crafting Digital Experiences That Inspire"
@@ -325,7 +408,6 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
         });
         return () => split.revert();
       }
-
       // --- Entrance: Gravitational Pull ---
       const chars = split.chars ?? [];
       gsap.set(chars, {
@@ -496,6 +578,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
 
   return (
     <section
+      id="hero-section"
       ref={sectionRef}
       className="relative h-screen w-full overflow-hidden bg-background"
       aria-label="A2 Production — Crafting Digital Experiences That Inspire"
@@ -644,15 +727,135 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
 // ─────────────────────────────────────────────────────────────────────────────
 export function Hero() {
   const { openModal } = useProjectInquiryModal();
-  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+  const isMobile = useSyncExternalStore(
+    subscribeToMobilePreference,
+    getMobileSnapshot,
+    getMobileServerSnapshot
+  );
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const audioControllerRef = useRef<HeroAudioController | null>(null);
+  const heroAudioEndedRef = useRef(false);
+  const soundEnabledRef = useRef(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [showSoundHint, setShowSoundHint] = useState(true);
+  const [showAudioControl, setShowAudioControl] = useState(true);
+
+  const getAudioController = useCallback(() => {
+    audioControllerRef.current ??= createHeroAudioController(
+      audioElementRef.current ?? undefined
+    );
+    return audioControllerRef.current;
+  }, []);
+
+  const playHeroAudio = useCallback(async () => {
+    if (heroAudioEndedRef.current || !soundEnabledRef.current) return false;
+
+    const hero = document.getElementById("hero-section");
+    if (hero && hero.getBoundingClientRect().bottom <= 0) return false;
+
+    const audioController = getAudioController();
+    const played = await audioController.play();
+
+    if (played) {
+      audioController.fadeTo(HERO_AUDIO_MAX_VOLUME, 0.55);
+      return true;
+    }
+
+    return false;
+  }, [getAudioController]);
 
   useEffect(() => {
-    const mq = window.matchMedia("(max-width: 767px)");
-    setIsMobile(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
-  }, []);
+    if (isMobile === null) return;
+
+    let frameId = 0;
+    const hintTimer = window.setTimeout(() => setShowSoundHint(false), 4200);
+
+    const stopAfterHero = () => {
+      const hero = document.getElementById("hero-section");
+      if (!hero) return;
+
+      const heroPastViewport = hero.getBoundingClientRect().bottom <= 0;
+      setShowAudioControl(!heroPastViewport);
+
+      if (heroPastViewport) {
+        heroAudioEndedRef.current = true;
+        setShowSoundHint(false);
+        audioControllerRef.current?.stop(true);
+      }
+    };
+
+    const handleMobileMenuOpen = () => {
+      soundEnabledRef.current = false;
+      setSoundEnabled(false);
+      setShowSoundHint(false);
+      audioControllerRef.current?.stop(false);
+    };
+
+    const handleAudioUnlock = (event: PointerEvent | TouchEvent) => {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest("[data-hero-volume-toggle]")
+      ) {
+        return;
+      }
+
+      void playHeroAudio();
+    };
+
+    frameId = window.requestAnimationFrame(() => {
+      heroAudioEndedRef.current = false;
+      void playHeroAudio();
+      stopAfterHero();
+    });
+
+    window.addEventListener("scroll", stopAfterHero, { passive: true });
+    window.addEventListener("a2:mobile-menu-open", handleMobileMenuOpen);
+    window.addEventListener("pointerdown", handleAudioUnlock, { passive: true });
+    window.addEventListener("touchstart", handleAudioUnlock, { passive: true });
+    window.addEventListener("keydown", playHeroAudio);
+
+    return () => {
+      window.clearTimeout(hintTimer);
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("scroll", stopAfterHero);
+      window.removeEventListener("a2:mobile-menu-open", handleMobileMenuOpen);
+      window.removeEventListener("pointerdown", handleAudioUnlock);
+      window.removeEventListener("touchstart", handleAudioUnlock);
+      window.removeEventListener("keydown", playHeroAudio);
+      audioControllerRef.current?.cleanup();
+      audioControllerRef.current = null;
+    };
+  }, [isMobile, playHeroAudio]);
+
+  const handleToggleSound = () => {
+    const audioController = getAudioController();
+
+    if (soundEnabledRef.current && !audioController.audio.paused) {
+      soundEnabledRef.current = false;
+      setSoundEnabled(false);
+      setShowSoundHint(false);
+      audioController.stop(false);
+      return;
+    }
+
+    const hero = document.getElementById("hero-section");
+    if (hero && hero.getBoundingClientRect().bottom <= 0) return;
+
+    heroAudioEndedRef.current = false;
+    soundEnabledRef.current = true;
+    setSoundEnabled(true);
+    setShowSoundHint(false);
+
+    void audioController.play().then((played) => {
+      if (played) {
+        audioController.fadeTo(HERO_AUDIO_MAX_VOLUME, 0.35);
+      } else {
+        soundEnabledRef.current = true;
+        setSoundEnabled(true);
+      }
+    });
+  };
 
   // Avoid SSR mismatch — render a minimal poster shell until JS confirms device type
   // Using a real visible placeholder (not aria-hidden) prevents blank screen on real mobile
@@ -674,9 +877,66 @@ export function Hero() {
     );
   }
 
-  return isMobile ? (
-    <MobileHero openModal={openModal} />
-  ) : (
-    <DesktopHero openModal={openModal} />
+  const VolumeIcon = soundEnabled ? Volume2 : VolumeX;
+
+  return (
+    <>
+      <audio
+        ref={(node) => {
+          audioElementRef.current = node;
+          if (node) {
+            node.volume = 0;
+            node.muted = false;
+          }
+        }}
+        src={HERO_AUDIO_SRC}
+        autoPlay
+        loop
+        preload="auto"
+        aria-hidden
+        className="hidden"
+      />
+
+      {isMobile ? (
+        <MobileHero openModal={openModal} />
+      ) : (
+        <DesktopHero openModal={openModal} />
+      )}
+
+      <AnimatePresence>
+        {showSoundHint && showAudioControl && (
+          <motion.div
+            key="hero-sound-hint"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.28, ease: "easeOut" }}
+            className="fixed bottom-20 right-5 z-50 max-w-[14rem] rounded-full border border-white/10 bg-black/50 px-4 py-2 font-inter text-xs font-medium text-white/85 shadow-[0_14px_40px_rgba(0,0,0,0.35)] backdrop-blur-md md:bottom-24 md:right-8"
+          >
+            Keep sound on for better experience
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {showAudioControl && (
+          <motion.button
+            type="button"
+            key="hero-volume-toggle"
+            onClick={handleToggleSound}
+            initial={{ opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.92 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="fixed bottom-6 right-5 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-white/15 bg-black/45 text-white shadow-[0_14px_40px_rgba(0,0,0,0.35)] backdrop-blur-md transition-colors duration-300 hover:bg-black/65 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00] md:bottom-8 md:right-8"
+            data-hero-volume-toggle
+            aria-label={soundEnabled ? "Turn hero music off" : "Turn hero music on"}
+            aria-pressed={soundEnabled}
+          >
+            <VolumeIcon className="h-4.5 w-4.5 text-[#FF7A00]" strokeWidth={1.8} aria-hidden />
+          </motion.button>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
