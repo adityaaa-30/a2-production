@@ -747,6 +747,14 @@ export function Hero() {
     return audioControllerRef.current;
   }, []);
 
+  const assignAudioElement = useCallback((node: HTMLAudioElement | null) => {
+    if (!node || audioElementRef.current === node) return;
+
+    audioElementRef.current = node;
+    node.volume = 0;
+    node.muted = false;
+  }, []);
+
   const playHeroAudio = useCallback(async () => {
     if (heroAudioEndedRef.current || !soundEnabledRef.current) return false;
 
@@ -815,6 +823,33 @@ export function Hero() {
     window.addEventListener("touchstart", handleAudioUnlock, { passive: true });
     window.addEventListener("keydown", playHeroAudio);
 
+    const audio = getAudioController().audio;
+    let recoveringPlayback = false;
+
+    const recoverPlayback = () => {
+      if (
+        recoveringPlayback ||
+        heroAudioEndedRef.current ||
+        !soundEnabledRef.current ||
+        document.visibilityState === "hidden"
+      ) {
+        return;
+      }
+
+      const hero = document.getElementById("hero-section");
+      if (hero && hero.getBoundingClientRect().bottom <= 0) return;
+
+      recoveringPlayback = true;
+      window.setTimeout(() => {
+        recoveringPlayback = false;
+        void playHeroAudio();
+      }, 120);
+    };
+
+    audio.addEventListener("pause", recoverPlayback);
+    audio.addEventListener("ended", recoverPlayback);
+    document.addEventListener("visibilitychange", recoverPlayback);
+
     return () => {
       window.clearTimeout(hintTimer);
       window.cancelAnimationFrame(frameId);
@@ -823,10 +858,13 @@ export function Hero() {
       window.removeEventListener("pointerdown", handleAudioUnlock);
       window.removeEventListener("touchstart", handleAudioUnlock);
       window.removeEventListener("keydown", playHeroAudio);
+      audio.removeEventListener("pause", recoverPlayback);
+      audio.removeEventListener("ended", recoverPlayback);
+      document.removeEventListener("visibilitychange", recoverPlayback);
       audioControllerRef.current?.cleanup();
       audioControllerRef.current = null;
     };
-  }, [isMobile, playHeroAudio]);
+  }, [getAudioController, isMobile, playHeroAudio]);
 
   const handleToggleSound = () => {
     const audioController = getAudioController();
@@ -882,13 +920,7 @@ export function Hero() {
   return (
     <>
       <audio
-        ref={(node) => {
-          audioElementRef.current = node;
-          if (node) {
-            node.volume = 0;
-            node.muted = false;
-          }
-        }}
+        ref={assignAudioElement}
         src={HERO_AUDIO_SRC}
         autoPlay
         loop
