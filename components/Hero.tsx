@@ -792,7 +792,7 @@ export function Hero() {
       }
     };
 
-    const handleMobileMenuOpen = () => {
+    const turnOffHeroAudio = () => {
       soundEnabledRef.current = false;
       setSoundEnabled(false);
       setShowSoundHint(false);
@@ -818,7 +818,8 @@ export function Hero() {
     });
 
     window.addEventListener("scroll", stopAfterHero, { passive: true });
-    window.addEventListener("a2:mobile-menu-open", handleMobileMenuOpen);
+    window.addEventListener("a2:mobile-menu-open", turnOffHeroAudio);
+    window.addEventListener("a2:project-form-open", turnOffHeroAudio);
     window.addEventListener("pointerdown", handleAudioUnlock, { passive: true });
     window.addEventListener("touchstart", handleAudioUnlock, { passive: true });
     window.addEventListener("keydown", playHeroAudio);
@@ -854,7 +855,8 @@ export function Hero() {
       window.clearTimeout(hintTimer);
       window.cancelAnimationFrame(frameId);
       window.removeEventListener("scroll", stopAfterHero);
-      window.removeEventListener("a2:mobile-menu-open", handleMobileMenuOpen);
+      window.removeEventListener("a2:mobile-menu-open", turnOffHeroAudio);
+      window.removeEventListener("a2:project-form-open", turnOffHeroAudio);
       window.removeEventListener("pointerdown", handleAudioUnlock);
       window.removeEventListener("touchstart", handleAudioUnlock);
       window.removeEventListener("keydown", playHeroAudio);

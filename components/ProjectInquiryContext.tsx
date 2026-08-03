@@ -18,7 +18,10 @@ const ProjectInquiryContext = createContext<ProjectInquiryContextType>({
 export function ProjectInquiryProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const openModal = () => setIsOpen(true);
+  const openModal = () => {
+    window.dispatchEvent(new CustomEvent("a2:project-form-open"));
+    setIsOpen(true);
+  };
   const closeModal = () => setIsOpen(false);
 
   return (
