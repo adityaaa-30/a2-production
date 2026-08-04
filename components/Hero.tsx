@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useCallback, useSyncExternalStore } from "react";
 import SplitType from "split-type";
-import { ArrowDown, Volume2, VolumeX } from "lucide-react";
+import { ArrowDown, Volume2, VolumeX, X } from "lucide-react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { MagneticButton } from "@/components/ui/MagneticButton";
@@ -735,9 +735,9 @@ export function Hero() {
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const audioControllerRef = useRef<HeroAudioController | null>(null);
   const heroAudioEndedRef = useRef(false);
-  const soundEnabledRef = useRef(true);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [showSoundHint, setShowSoundHint] = useState(true);
+  const soundEnabledRef = useRef(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [showAudioPrompt, setShowAudioPrompt] = useState(true);
   const [showAudioControl, setShowAudioControl] = useState(true);
 
   const getAudioController = useCallback(() => {
@@ -776,8 +776,6 @@ export function Hero() {
     if (isMobile === null) return;
 
     let frameId = 0;
-    const hintTimer = window.setTimeout(() => setShowSoundHint(false), 4200);
-
     const stopAfterHero = () => {
       const hero = document.getElementById("hero-section");
       if (!hero) return;
@@ -787,7 +785,7 @@ export function Hero() {
 
       if (heroPastViewport) {
         heroAudioEndedRef.current = true;
-        setShowSoundHint(false);
+        setShowAudioPrompt(false);
         audioControllerRef.current?.stop(true);
       }
     };
@@ -795,34 +793,18 @@ export function Hero() {
     const turnOffHeroAudio = () => {
       soundEnabledRef.current = false;
       setSoundEnabled(false);
-      setShowSoundHint(false);
+      setShowAudioPrompt(false);
       audioControllerRef.current?.stop(false);
-    };
-
-    const handleAudioUnlock = (event: PointerEvent | TouchEvent) => {
-      const target = event.target;
-      if (
-        target instanceof Element &&
-        target.closest("[data-hero-volume-toggle]")
-      ) {
-        return;
-      }
-
-      void playHeroAudio();
     };
 
     frameId = window.requestAnimationFrame(() => {
       heroAudioEndedRef.current = false;
-      void playHeroAudio();
       stopAfterHero();
     });
 
     window.addEventListener("scroll", stopAfterHero, { passive: true });
     window.addEventListener("a2:mobile-menu-open", turnOffHeroAudio);
     window.addEventListener("a2:project-form-open", turnOffHeroAudio);
-    window.addEventListener("pointerdown", handleAudioUnlock, { passive: true });
-    window.addEventListener("touchstart", handleAudioUnlock, { passive: true });
-    window.addEventListener("keydown", playHeroAudio);
 
     const audio = getAudioController().audio;
     let recoveringPlayback = false;
@@ -852,14 +834,10 @@ export function Hero() {
     document.addEventListener("visibilitychange", recoverPlayback);
 
     return () => {
-      window.clearTimeout(hintTimer);
       window.cancelAnimationFrame(frameId);
       window.removeEventListener("scroll", stopAfterHero);
       window.removeEventListener("a2:mobile-menu-open", turnOffHeroAudio);
       window.removeEventListener("a2:project-form-open", turnOffHeroAudio);
-      window.removeEventListener("pointerdown", handleAudioUnlock);
-      window.removeEventListener("touchstart", handleAudioUnlock);
-      window.removeEventListener("keydown", playHeroAudio);
       audio.removeEventListener("pause", recoverPlayback);
       audio.removeEventListener("ended", recoverPlayback);
       document.removeEventListener("visibilitychange", recoverPlayback);
@@ -868,33 +846,41 @@ export function Hero() {
     };
   }, [getAudioController, isMobile, playHeroAudio]);
 
+  const enableHeroAudio = () => {
+    const hero = document.getElementById("hero-section");
+    if (hero && hero.getBoundingClientRect().bottom <= 0) return;
+
+    const audioController = getAudioController();
+
+    heroAudioEndedRef.current = false;
+    soundEnabledRef.current = true;
+    setSoundEnabled(true);
+    setShowAudioPrompt(false);
+
+    void audioController.play().then((played) => {
+      if (played) {
+        audioController.fadeTo(HERO_AUDIO_MAX_VOLUME, 0.35);
+        return;
+      }
+
+      soundEnabledRef.current = false;
+      setSoundEnabled(false);
+      setShowAudioPrompt(true);
+    });
+  };
+
   const handleToggleSound = () => {
     const audioController = getAudioController();
 
     if (soundEnabledRef.current && !audioController.audio.paused) {
       soundEnabledRef.current = false;
       setSoundEnabled(false);
-      setShowSoundHint(false);
+      setShowAudioPrompt(false);
       audioController.stop(false);
       return;
     }
 
-    const hero = document.getElementById("hero-section");
-    if (hero && hero.getBoundingClientRect().bottom <= 0) return;
-
-    heroAudioEndedRef.current = false;
-    soundEnabledRef.current = true;
-    setSoundEnabled(true);
-    setShowSoundHint(false);
-
-    void audioController.play().then((played) => {
-      if (played) {
-        audioController.fadeTo(HERO_AUDIO_MAX_VOLUME, 0.35);
-      } else {
-        soundEnabledRef.current = true;
-        setSoundEnabled(true);
-      }
-    });
+    enableHeroAudio();
   };
 
   // Avoid SSR mismatch — render a minimal poster shell until JS confirms device type
@@ -924,7 +910,6 @@ export function Hero() {
       <audio
         ref={assignAudioElement}
         src={HERO_AUDIO_SRC}
-        autoPlay
         loop
         preload="auto"
         aria-hidden
@@ -938,16 +923,38 @@ export function Hero() {
       )}
 
       <AnimatePresence>
-        {showSoundHint && showAudioControl && (
+        {showAudioPrompt && showAudioControl && (
           <motion.div
-            key="hero-sound-hint"
+            key="hero-audio-prompt"
+            role="dialog"
+            aria-label="Audio permission"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.28, ease: "easeOut" }}
-            className="fixed bottom-20 right-5 z-50 max-w-[14rem] rounded-full border border-white/10 bg-black/50 px-4 py-2 font-inter text-xs font-medium text-white/85 shadow-[0_14px_40px_rgba(0,0,0,0.35)] backdrop-blur-md md:bottom-24 md:right-8"
+            className="fixed bottom-20 right-5 z-50 flex w-[min(calc(100vw-2.5rem),22rem)] items-center gap-3 rounded-lg border border-white/10 bg-black/60 p-3 font-inter text-white shadow-[0_14px_40px_rgba(0,0,0,0.35)] backdrop-blur-md md:bottom-24 md:right-8"
           >
-            Keep sound on for better experience
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#FF7A00]/15 text-[#FF7A00]">
+              <Volume2 className="h-4.5 w-4.5" strokeWidth={1.8} aria-hidden />
+            </span>
+            <p className="min-w-0 flex-1 text-sm font-medium leading-snug text-white/88">
+              Turn on audio for better experience
+            </p>
+            <button
+              type="button"
+              onClick={enableHeroAudio}
+              className="shrink-0 rounded-full bg-[#FF7A00] px-4 py-2 text-xs font-semibold text-black transition-transform duration-200 active:scale-95"
+            >
+              Allow
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowAudioPrompt(false)}
+              aria-label="Dismiss audio prompt"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 text-white/70 transition-colors duration-200 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF7A00]"
+            >
+              <X className="h-4 w-4" strokeWidth={1.8} aria-hidden />
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
