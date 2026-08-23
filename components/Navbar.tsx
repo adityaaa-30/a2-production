@@ -130,9 +130,9 @@ export function Navbar() {
             aria-label="A2 Production"
           >
             <img
-              src="/images/a2-brand-logo.png"
+              src="/images/a2-symbol-only.png"
               alt="A2 Logo"
-              className="h-8 md:h-9 w-auto object-contain transition-transform duration-300 group-hover:scale-105 filter drop-shadow-[0_2px_12px_rgba(217,119,6,0.35)]"
+              className="h-8 md:h-[38px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
             />
             <span className="font-geist text-xs md:text-[13px] font-medium tracking-[0.38em] uppercase bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent transition-all duration-300 group-hover:tracking-[0.42em]">
               PRODUCTION
@@ -209,9 +209,9 @@ export function Navbar() {
                   aria-label="A2 Production"
                 >
                   <img
-                    src="/images/a2-brand-logo.png"
+                    src="/images/a2-symbol-only.png"
                     alt="A2 Logo"
-                    className="h-6 w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(217,119,6,0.3)]"
+                    className="h-7 w-auto object-contain"
                   />
                   <span className="font-geist text-[11px] font-medium tracking-[0.3em] uppercase bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
                     PRODUCTION
