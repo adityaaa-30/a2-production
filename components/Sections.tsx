@@ -237,25 +237,25 @@ interface TeamMember {
 
 const TEAM_MEMBERS: TeamMember[] = [
   {
-    name: "AKASH SINGH RAJPUT",
+    name: "AKASH",
     role: "Founder & Creative Director",
     image: "/images/team/akash.png",
     socialType: "instagram",
-    socialUrl: "https://instagram.com",
+    socialUrl: "https://www.instagram.com/akash__singh__rajput_0/",
   },
   {
     name: "ABHISHEK",
     role: "Editor & Cinematographer",
     image: "/images/team/abhishek.jpg",
     socialType: "instagram",
-    socialUrl: "https://instagram.com",
+    socialUrl: "https://www.instagram.com/abhishek_shaw_172/",
   },
   {
     name: "ADITYA",
     role: "Website Developer & UI/UX Designer",
     image: "/images/team/aditya.png",
-    socialType: "linkedin",
-    socialUrl: "https://linkedin.com",
+    socialType: "instagram",
+    socialUrl: "https://www.instagram.com/whyyyx_aadi/",
   },
 ];
 
