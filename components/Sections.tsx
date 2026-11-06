@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { animate, motion, useMotionValue } from "framer-motion";
 import {
   Globe,
   Share2,
@@ -14,7 +14,10 @@ import {
   SlidersHorizontal,
   Rocket,
   Mail,
+  Check,
+  Star,
 } from "lucide-react";
+import { MONTHLY_PACKAGES } from "@/lib/monthly-packages";
 
 function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -30,6 +33,14 @@ function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
       <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
       <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
       <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
+    </svg>
+  );
+}
+
+function FacebookIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" {...props}>
+      <path d="M13.5 21v-8h2.7l.4-3h-3.1V8.1c0-.9.3-1.5 1.6-1.5h1.6V3.9c-.3 0-1.3-.1-2.5-.1C11.7 3.8 10 5.3 10 8.1V10H7.3v3H10v8h3.5Z" />
     </svg>
   );
 }
@@ -114,6 +125,107 @@ const BUILD_SERVICES: BuildCard[] = [
     icon: PenTool,
   },
 ];
+
+function ServiceCardVisual({ number }: { number: string }) {
+  const visualClass = `service-art service-art--${number}`;
+
+  if (number === "01") {
+    return (
+      <div aria-hidden="true" className={visualClass}>
+        <div className="service-art__scene service-art__website">
+          <div className="service-art__website-back" />
+          <div className="service-art__website-window">
+            <div className="service-art__browser-bar">
+              <span /><span /><span />
+              <i />
+              <b>A2 / STUDIO</b>
+            </div>
+            <div className="service-art__website-body">
+              <div className="service-art__website-copy">
+                <small>MADE TO STAND APART</small>
+                <strong>Digital<br />experiences.</strong>
+                <i />
+                <span>Explore the studio <b>↗</b></span>
+              </div>
+              <div className="service-art__website-image">
+                <div className="service-art__website-orb" />
+                <div className="service-art__website-slab" />
+                <b>01</b>
+              </div>
+            </div>
+            <div className="service-art__website-foot"><span>STRATEGY</span><i /><span>DESIGN</span><i /><span>DEVELOPMENT</span></div>
+          </div>
+          <span className="service-art__website-glint" />
+        </div>
+      </div>
+    );
+  }
+
+  if (number === "02") {
+    return (
+      <div aria-hidden="true" className={visualClass}>
+        <div className="service-art__scene service-art__social">
+          <svg className="service-art__orbit" viewBox="0 0 280 112" fill="none">
+            <ellipse cx="140" cy="56" rx="91" ry="34" />
+            <ellipse cx="140" cy="56" rx="62" ry="45" transform="rotate(-24 140 56)" />
+            <path d="M58 69 111 50l54 20 57-32" />
+          </svg>
+          <div className="service-art__social-core">
+            <span className="service-art__social-monogram">A</span>
+            <small>SALES</small>
+          </div>
+          <div className="service-art__social-node service-art__social-node--one"><InstagramIcon /><i /></div>
+          <div className="service-art__social-node service-art__social-node--two"><WhatsappIcon /><i /></div>
+          <div className="service-art__social-node service-art__social-node--three"><FacebookIcon /><i /></div>
+          <span className="service-art__social-satellite" />
+          <span className="service-art__social-satellite service-art__social-satellite--two" />
+        </div>
+      </div>
+    );
+  }
+
+  if (number === "03") {
+    return (
+      <div aria-hidden="true" className={visualClass}>
+        <div className="service-art__scene service-art__brand">
+          <div className="service-art__brand-sheet service-art__brand-sheet--back" />
+          <div className="service-art__brand-sheet service-art__brand-sheet--front">
+            <span className="service-art__brand-label">IDENTITY / 2025</span>
+            <div className="service-art__brand-lockup">
+              <svg viewBox="0 0 54 58" fill="none">
+                <path d="M5 48 27 7l22 41M15 31h24M34 34l11 11-8 8-11-11" />
+                <circle cx="27" cy="7" r="2" />
+              </svg>
+              <strong>A2</strong>
+            </div>
+            <div className="service-art__brand-baseline"><span>FORM / FUNCTION</span><i /><b>EST. 2025</b></div>
+          </div>
+          <div className="service-art__brand-swatches"><i /><i /><i /><i /></div>
+          <span className="service-art__brand-index">VISUAL SYSTEM 03</span>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div aria-hidden="true" className={visualClass}>
+      <div className="service-art__scene service-art__creative">
+        <div className="service-art__creative-back">
+          <span>CANVAS / 04</span>
+          <div><i /><i /><i /></div>
+        </div>
+        <div className="service-art__creative-canvas">
+          <div className="service-art__creative-sun" />
+          <div className="service-art__creative-shape" />
+          <div className="service-art__creative-cutout" />
+          <span>FORM STUDY — A</span>
+        </div>
+        <div className="service-art__creative-tools"><i /><i /><i /><b /></div>
+        <div className="service-art__creative-timeline"><span>00:04</span><i /><i /><i /><b /></div>
+      </div>
+    </div>
+  );
+}
 
 interface TeamMember {
   name: string;
@@ -217,6 +329,48 @@ const processCardVariants = {
   },
 };
 
+const swipeTrackState = new WeakMap<
+  HTMLDivElement,
+  { scrollLeft: number; timestamp: number; timeout: number }
+>();
+
+function updateSwipeCardEffects(track: HTMLDivElement) {
+  if (window.innerWidth >= 768) return;
+
+  const now = performance.now();
+  const previous = swipeTrackState.get(track);
+  const elapsed = previous ? Math.max(now - previous.timestamp, 1) : 1;
+  const velocity = previous
+    ? Math.min(Math.abs(track.scrollLeft - previous.scrollLeft) / elapsed, 2)
+    : 0;
+
+  if (previous) window.clearTimeout(previous.timeout);
+
+  const applyEffects = (motionBlur: number) => {
+    track.querySelectorAll<HTMLElement>("[data-swipe-card]").forEach((card) => {
+      Array.from(card.children).forEach((content) => {
+        if (!(content instanceof HTMLElement)) return;
+        content.style.transition = "none";
+        content.style.filter = motionBlur > 0 ? `blur(${motionBlur.toFixed(2)}px)` : "none";
+      });
+    });
+  };
+
+  applyEffects(velocity > 0.12 ? Math.min(velocity * 1.2, 1.4) : 0);
+
+  const timeout = window.setTimeout(() => {
+    applyEffects(0);
+    track.querySelectorAll<HTMLElement>("[data-swipe-card] > *").forEach((content) => {
+      content.style.transition = "";
+    });
+  }, 60);
+  swipeTrackState.set(track, {
+    scrollLeft: track.scrollLeft,
+    timestamp: now,
+    timeout,
+  });
+}
+
 /* ── Floating Particles Background ── */
 function FloatingParticles() {
   const [particles] = useState(() =>
@@ -302,7 +456,7 @@ function ProcessSection() {
         <div className="inline-flex items-center gap-2 rounded-full border border-[#FF7A00]/25 bg-[#FF7A00]/[0.05] px-4 py-1.5 backdrop-blur-md w-fit">
           <span className="h-2 w-2 rounded-full bg-[#FF7A00] animate-pulse" />
           <span className="font-poppins text-xs font-medium uppercase tracking-[0.35em] text-[#FF7A00]">
-            03 — OUR PROCESS
+              04 — OUR PROCESS
           </span>
         </div>
 
@@ -342,7 +496,10 @@ function ProcessSection() {
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-60px" }}
-        className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5 lg:gap-5"
+        onScroll={(event) => updateSwipeCardEffects(event.currentTarget)}
+        tabIndex={0}
+        aria-label="Swipe horizontally to view all process steps"
+        className="-mx-6 flex snap-x snap-proximity items-stretch gap-4 overflow-x-auto px-6 pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:p-0 lg:grid-cols-5 lg:gap-5"
       >
         {PROCESS_STEPS.map((step) => {
           const Icon = step.icon;
@@ -350,40 +507,41 @@ function ProcessSection() {
             <motion.div
               key={step.number}
               variants={processCardVariants}
-              className="group relative flex flex-col overflow-hidden rounded-[28px] border border-white/[0.07] bg-white/[0.02] backdrop-blur-xl p-7 md:p-8 transition-all duration-500 hover:-translate-y-3 hover:border-[#FF7A00]/40 hover:bg-white/[0.04] hover:shadow-[0_20px_60px_rgba(255,122,0,0.12),0_0_30px_rgba(255,122,0,0.06)]"
+              data-swipe-card
+              className="group relative flex w-[78vw] max-w-[22rem] shrink-0 snap-center flex-col overflow-hidden rounded-[28px] border border-white/[0.07] bg-white/[0.02] p-7 backdrop-blur-xl transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform md:w-auto md:max-w-none md:p-8 md:hover:-translate-y-3 md:hover:scale-[1.035] md:hover:border-[#FF7A00]/40 md:hover:bg-white/[0.04] md:hover:shadow-[0_20px_60px_rgba(255,122,0,0.12),0_0_30px_rgba(255,122,0,0.06)]"
             >
               {/* Glass reflection highlight */}
-              <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-gradient-to-br from-white/[0.04] via-transparent to-transparent opacity-40 transition-opacity duration-500 group-hover:opacity-100" />
+              <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-gradient-to-br from-white/[0.04] via-transparent to-transparent opacity-40 transition-opacity duration-300 md:group-hover:opacity-100" />
 
               {/* Large ghost step number */}
-              <span className="pointer-events-none absolute -top-2 -right-1 font-geist text-[7rem] md:text-[8rem] font-black leading-none text-white/[0.03] transition-all duration-700 group-hover:text-[#FF7A00]/[0.08] select-none">
+              <span className="pointer-events-none absolute -top-2 -right-1 font-geist text-[7rem] md:text-[8rem] font-black leading-none text-white/[0.03] transition-colors duration-200 md:group-hover:text-[#FF7A00]/[0.08] select-none">
                 {step.number}
               </span>
 
               {/* Step badge */}
               <div className="relative z-10 mb-6">
-                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.4em] text-[#FF7A00]/60 transition-colors duration-300 group-hover:text-[#FF7A00]">
+                <span className="font-mono text-[10px] font-bold uppercase tracking-[0.4em] text-[#FF7A00]/60 transition-colors duration-200 md:group-hover:text-[#FF7A00]">
                   STEP {step.number}
                 </span>
               </div>
 
               {/* Icon */}
-              <div className="relative z-10 mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#FF7A00]/20 bg-[#FF7A00]/[0.06] text-[#FF7A00] transition-all duration-500 group-hover:rotate-6 group-hover:scale-110 group-hover:border-[#FF7A00]/50 group-hover:bg-[#FF7A00]/15 group-hover:text-white group-hover:shadow-[0_0_25px_rgba(255,122,0,0.4)]">
+              <div className="relative z-10 mb-6 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#FF7A00]/20 bg-[#FF7A00]/[0.06] text-[#FF7A00] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:group-hover:rotate-6 md:group-hover:scale-110 md:group-hover:border-[#FF7A00]/50 md:group-hover:bg-[#FF7A00]/15 md:group-hover:text-white md:group-hover:shadow-[0_0_25px_rgba(255,122,0,0.4)]">
                 <Icon className="h-6 w-6 stroke-[1.5]" />
               </div>
 
               {/* Title */}
-              <h3 className="relative z-10 font-geist text-lg font-bold uppercase tracking-[0.08em] text-white transition-colors duration-300 group-hover:text-[#FF7A00] mb-4 md:text-xl">
+              <h3 className="relative z-10 font-geist text-lg font-bold uppercase tracking-[0.08em] text-white transition-colors duration-200 md:group-hover:text-[#FF7A00] mb-4 md:text-xl">
                 {step.title}
               </h3>
 
               {/* Description — fades in on hover */}
-              <p className="relative z-10 font-inter text-sm font-light text-[#BDBDBD] leading-relaxed mt-auto transition-all duration-500 group-hover:text-white/80">
+              <p className="relative z-10 font-inter text-sm font-light text-[#BDBDBD] leading-relaxed mt-auto transition-colors duration-200 md:group-hover:text-white/80">
                 {step.description}
               </p>
 
               {/* Bottom accent bar */}
-              <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#FF7A00] to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#FF7A00] to-transparent opacity-0 transition-opacity duration-200 md:group-hover:opacity-100" />
             </motion.div>
           );
         })}
@@ -434,6 +592,18 @@ const cardVariants = {
     opacity: 1,
     y: 0,
     filter: "blur(0px)",
+    transition: {
+      duration: 0.85,
+      ease: [0.215, 0.61, 0.355, 1] as const,
+    },
+  },
+};
+
+const serviceCardVariants = {
+  hidden: { opacity: 0, y: 50 },
+  show: {
+    opacity: 1,
+    y: 0,
     transition: {
       duration: 0.85,
       ease: [0.215, 0.61, 0.355, 1] as const,
@@ -546,7 +716,7 @@ const contactItemVariants = {
 };
 
 /* ────────────────────────────────────────────────────────────
-    04 — CONTACT (PREMIUM CREATIVE AGENCY SECTION)
+    05 — CONTACT (PREMIUM CREATIVE AGENCY SECTION)
     ──────────────────────────────────────────────────────────── */
 function ContactSection() {
   const { openModal } = useProjectInquiryModal();
@@ -601,7 +771,7 @@ function ContactSection() {
           <div className="inline-flex items-center gap-2 rounded-full border border-[#FF7A00]/25 bg-[#FF7A00]/[0.05] px-4 py-1.5 backdrop-blur-md w-fit">
             <span className="h-2 w-2 rounded-full bg-[#FF7A00] animate-pulse" />
             <span className="font-poppins text-xs font-medium uppercase tracking-[0.35em] text-[#FF7A00]">
-              04 — CONTACT
+              05 — CONTACT
             </span>
           </div>
 
@@ -624,7 +794,12 @@ function ContactSection() {
               {/* Subtle top border gradient */}
               <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-[#FF7A00]/40 to-transparent" />
 
-              <div className="flex flex-col gap-4">
+              <div
+                tabIndex={0}
+                aria-label="Swipe horizontally to view contact options"
+                onScroll={(event) => updateSwipeCardEffects(event.currentTarget)}
+                className="-mx-6 flex snap-x snap-proximity gap-3 overflow-x-auto px-6 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:flex-col sm:gap-4 sm:overflow-visible sm:p-0"
+              >
                 {contactItems.map((item) => {
                   const Icon = item.icon;
                   return (
@@ -633,9 +808,10 @@ function ContactSection() {
                       href={item.href}
                       target={item.external ? "_blank" : undefined}
                       rel={item.external ? "noopener noreferrer" : undefined}
+                      data-swipe-card
                       whileHover={{ x: 6 }}
                       transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                      className="group flex items-start gap-4 sm:gap-5 rounded-2xl border border-white/[0.04] bg-white/[0.02] p-4 transition-all duration-300 hover:border-[#FF7A00]/40 hover:bg-white/[0.05] hover:shadow-[0_8px_25px_rgba(255,122,0,0.12)] cursor-pointer"
+                      className="group flex w-[70vw] max-w-[18rem] shrink-0 snap-center items-start gap-4 overflow-hidden rounded-2xl border border-white/[0.04] bg-white/[0.02] p-4 transition-all duration-300 hover:border-[#FF7A00]/40 hover:bg-white/[0.05] hover:shadow-[0_8px_25px_rgba(255,122,0,0.12)] cursor-pointer sm:w-auto sm:max-w-none sm:gap-5"
                     >
                       {/* Icon inside circular glass container */}
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[#FF7A00]/30 bg-[#FF7A00]/10 text-[#FF7A00] transition-all duration-300 group-hover:scale-110 group-hover:border-[#FF7A00] group-hover:bg-[#FF7A00] group-hover:text-black group-hover:shadow-[0_0_20px_rgba(255,122,0,0.6)]">
@@ -665,7 +841,6 @@ function ContactSection() {
                   );
                 })}
               </div>
-
               {/* Horizontal Divider */}
               <div className="my-6 h-[1px] w-full bg-gradient-to-r from-transparent via-white/15 to-transparent sm:my-8" />
 
@@ -673,7 +848,7 @@ function ContactSection() {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={openModal}
+                onClick={() => openModal()}
                 className="group relative flex w-full cursor-pointer items-center justify-center gap-3 overflow-hidden rounded-full bg-gradient-to-r from-[#FF7A00] via-[#FF8C00] to-[#FFA000] py-4 px-8 font-geist text-base font-semibold text-black shadow-[0_0_25px_rgba(255,122,0,0.35)] transition-all duration-300 hover:shadow-[0_0_45px_rgba(255,122,0,0.65)]"
               >
                 <span className="relative z-10 font-semibold tracking-wide">Start Your Project</span>
@@ -691,6 +866,128 @@ function ContactSection() {
 export function Sections() {
   const { openModal } = useProjectInquiryModal();
   const containerRef = useRef<HTMLDivElement>(null);
+  const servicesViewportRef = useRef<HTMLDivElement>(null);
+  const servicesTrackRef = useRef<HTMLDivElement>(null);
+  const servicesIndexRef = useRef(0);
+  const servicesX = useMotionValue(0);
+  const servicesDragRef = useRef<{ pointerId: number; startX: number; startY: number; startOffset: number; horizontal: boolean } | null>(null);
+  const servicesMotionTimeoutRef = useRef<number | null>(null);
+
+  const getServicesOffset = (index: number) => {
+    const viewport = servicesViewportRef.current;
+    const track = servicesTrackRef.current;
+    const card = track?.querySelector<HTMLElement>("[data-service-card]");
+    if (!viewport || !track || !card) return 0;
+    const styles = window.getComputedStyle(track);
+    const gap = parseFloat(styles.columnGap || styles.gap) || 0;
+    return -(index * (card.getBoundingClientRect().width + gap));
+  };
+
+  const settleServicesAt = (index: number, immediate = false) => {
+    const boundedIndex = Math.max(0, Math.min(BUILD_SERVICES.length - 1, index));
+    servicesIndexRef.current = boundedIndex;
+    const target = window.innerWidth >= 768 ? 0 : getServicesOffset(boundedIndex);
+    if (immediate || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      servicesX.set(target);
+    } else {
+      animate(servicesX, target, { type: "spring", stiffness: 340, damping: 34, mass: 0.8 });
+    }
+  };
+
+  useEffect(() => {
+    const onResize = () => {
+      const target = window.innerWidth >= 768 ? 0 : getServicesOffset(servicesIndexRef.current);
+      servicesX.set(target);
+    };
+    window.addEventListener("resize", onResize);
+    onResize();
+    return () => {
+      window.removeEventListener("resize", onResize);
+      if (servicesMotionTimeoutRef.current !== null) {
+        window.clearTimeout(servicesMotionTimeoutRef.current);
+      }
+    };
+  }, [servicesX]);
+
+  const onServicesPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (window.innerWidth >= 768 || !event.isPrimary || event.button !== 0) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    servicesX.stop();
+    if (servicesMotionTimeoutRef.current !== null) {
+      window.clearTimeout(servicesMotionTimeoutRef.current);
+      servicesMotionTimeoutRef.current = null;
+    }
+    servicesTrackRef.current?.querySelectorAll<HTMLElement>("[data-service-elastic]").forEach((card) => {
+      card.style.transition = "none";
+      card.style.transform = "";
+      card.style.filter = "";
+      card.style.transition = "";
+    });
+    servicesDragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      startOffset: servicesX.get(),
+      horizontal: false,
+    };
+  };
+
+  const onServicesPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = servicesDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    if (!drag.horizontal && Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+    if (!drag.horizontal && Math.abs(dy) > Math.abs(dx)) {
+      servicesDragRef.current = null;
+      return;
+    }
+    drag.horizontal = true;
+    event.preventDefault();
+    const atEdge = (servicesIndexRef.current === 0 && dx > 0) || (servicesIndexRef.current === BUILD_SERVICES.length - 1 && dx < 0);
+    const resistedDx = atEdge ? dx * 0.24 : dx;
+    servicesX.set(drag.startOffset + resistedDx * 0.62);
+    servicesTrackRef.current?.querySelectorAll<HTMLElement>("[data-service-elastic]").forEach((card) => {
+      card.style.filter = "none";
+    });
+    const activeCard = servicesTrackRef.current?.querySelector<HTMLElement>(`[data-service-card="${servicesIndexRef.current}"] [data-service-elastic]`);
+    if (activeCard) {
+      const stretch = Math.min(Math.abs(dx) / 900, 0.025);
+      activeCard.style.transform = `scaleX(${1 + stretch}) skewX(${Math.sign(dx) * Math.min(Math.abs(dx) / 180, 1.1)}deg)`;
+      if (!atEdge) {
+        activeCard.style.filter = `blur(${Math.min(Math.abs(dx) / 90, 0.75)}px)`;
+      }
+    }
+  };
+
+  const finishServicesPointer = (event: React.PointerEvent<HTMLDivElement>, cancelled = false) => {
+    const drag = servicesDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    servicesDragRef.current = null;
+    const dx = event.clientX - drag.startX;
+    const intentionalSwipe = drag.horizontal && Math.abs(dx) >= 8;
+    const nextIndex = !cancelled && intentionalSwipe
+      ? servicesIndexRef.current + (dx < 0 ? 1 : -1)
+      : servicesIndexRef.current;
+    const elasticCards = servicesTrackRef.current?.querySelectorAll<HTMLElement>("[data-service-elastic]");
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    elasticCards?.forEach((card) => {
+      card.style.transition = prefersReducedMotion ? "none" : "transform 420ms cubic-bezier(.2,.8,.2,1), filter 320ms ease-out";
+      card.style.transform = "";
+      card.style.filter = "";
+    });
+    if (!prefersReducedMotion && elasticCards?.length) {
+      servicesMotionTimeoutRef.current = window.setTimeout(() => {
+        servicesTrackRef.current?.querySelectorAll<HTMLElement>("[data-service-elastic]").forEach((card) => {
+          card.style.transition = "";
+        });
+        servicesMotionTimeoutRef.current = null;
+      }, 450);
+    } else {
+      elasticCards?.forEach((card) => { card.style.transition = ""; });
+    }
+    settleServicesAt(nextIndex);
+  };
 
   return (
     <div ref={containerRef} className="relative bg-background text-text selection:bg-[#FF7A00]/30">
@@ -734,21 +1031,36 @@ export function Sections() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: "-80px" }}
-          className="mt-16 grid grid-cols-1 gap-6 md:grid-cols-2 lg:gap-8"
+          ref={servicesViewportRef}
+          onPointerDown={onServicesPointerDown}
+          onPointerMove={onServicesPointerMove}
+          onPointerUp={(event) => finishServicesPointer(event)}
+          onPointerCancel={(event) => finishServicesPointer(event, true)}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowRight") settleServicesAt(servicesIndexRef.current + 1);
+            if (event.key === "ArrowLeft") settleServicesAt(servicesIndexRef.current - 1);
+          }}
+          tabIndex={0}
+          aria-label="Swipe horizontally to view all services"
+          className="-mx-6 mt-16 touch-pan-y overflow-hidden px-0 pb-5 md:mx-0 md:overflow-visible md:p-0"
         >
-          {BUILD_SERVICES.map((service) => {
+          <motion.div
+            ref={servicesTrackRef}
+            style={{ x: servicesX }}
+            className="services-carousel-track flex w-max items-stretch gap-4 md:grid md:w-full md:grid-cols-2 md:gap-6 lg:gap-8"
+          >
+          {BUILD_SERVICES.map((service, index) => {
             const Icon = service.icon;
             return (
               <motion.div
                 key={service.number}
-                variants={cardVariants}
-                className="group relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 md:p-10 backdrop-blur-xl transition-all duration-500 hover:-translate-y-2 hover:border-[#C98A3D]/40 hover:bg-white/[0.04] hover:shadow-[0_20px_50px_rgba(201,138,61,0.12),0_0_20px_rgba(201,138,61,0.06)]"
+                variants={serviceCardVariants}
+                data-service-card={index}
+                className="group relative flex h-[27rem] w-[78vw] max-w-[24rem] shrink-0 flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 transition-[border-color,background-color,box-shadow] duration-300 md:h-auto md:min-h-[25rem] md:w-auto md:max-w-none md:p-10 md:backdrop-blur-xl md:hover:-translate-y-2 md:hover:border-[#C98A3D]/40 md:hover:bg-white/[0.04] md:hover:shadow-[0_20px_50px_rgba(201,138,61,0.12),0_0_20px_rgba(201,138,61,0.06)]"
               >
-                {/* Subtle glass reflection highlight */}
-                <div className="pointer-events-none absolute inset-0 rounded-3xl bg-gradient-to-br from-white/[0.04] via-transparent to-transparent opacity-50 transition-opacity duration-500 group-hover:opacity-100" />
-
+                <div data-service-elastic className="relative z-10 flex h-full flex-col justify-between will-change-transform">
                 {/* Top Row: Icon + Number */}
-                <div className="relative z-10 flex items-start justify-between gap-4 mb-8">
+                <div className="mb-8 flex items-start justify-between gap-4">
                   <div className="flex h-13 w-13 items-center justify-center rounded-2xl border border-[#C98A3D]/25 bg-[#C98A3D]/[0.08] text-[#C98A3D] transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 group-hover:border-[#C98A3D]/60 group-hover:bg-[#C98A3D]/20 group-hover:text-white group-hover:shadow-[0_0_20px_rgba(201,138,61,0.4)]">
                     <Icon className="h-6 w-6 stroke-[1.75]" />
                   </div>
@@ -761,8 +1073,10 @@ export function Sections() {
                   </div>
                 </div>
 
+                <ServiceCardVisual number={service.number} />
+
                 {/* Content */}
-                <div className="relative z-10 flex flex-col gap-3 mt-auto">
+                <div className="mt-auto flex flex-col gap-3">
                   <span className="font-poppins text-[10px] font-medium uppercase tracking-[0.3em] text-[#C98A3D]/80">
                     {service.tag}
                   </span>
@@ -773,17 +1087,129 @@ export function Sections() {
                     {service.description}
                   </p>
                 </div>
+                </div>
 
                 {/* Subtle bottom gradient accent bar on hover */}
-                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#C98A3D] to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+                <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#C98A3D] to-transparent opacity-0 transition-opacity duration-500 md:group-hover:opacity-100" />
               </motion.div>
             );
           })}
+          </motion.div>
         </motion.div>
       </section>
 
       {/* ────────────────────────────────────────────────────────────
-          02 — ABOUT OUR TEAM (OFFICIAL TEAM SHOWCASE WITH AVATARS)
+          02 — MONTHLY SOCIAL MEDIA PACKAGES
+          ──────────────────────────────────────────────────────────── */}
+      <section
+        id="plans"
+        className="relative mx-auto w-full max-w-[1600px] overflow-hidden border-t border-white/10 px-6 py-28 md:px-14 md:py-32 lg:px-20"
+      >
+        <div className="pointer-events-none absolute left-1/2 top-1/3 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.07)_0%,transparent_70%)] blur-3xl" />
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.8, ease: [0.215, 0.61, 0.355, 1] }}
+          className="relative flex flex-col gap-5 md:max-w-3xl"
+        >
+          <div className="inline-flex w-fit items-center gap-2 rounded-full border border-[#FF7A00]/25 bg-[#FF7A00]/[0.05] px-4 py-1.5 backdrop-blur-md">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-[#FF7A00]" />
+            <span className="font-poppins text-xs font-medium uppercase tracking-[0.35em] text-[#FF7A00]">
+              02 — MONTHLY PLANS
+            </span>
+          </div>
+          <h2 className="font-geist text-[clamp(2.25rem,5.5vw,4rem)] font-medium leading-[1.05] tracking-tight text-white">
+            Consistent content. Built-in momentum.
+          </h2>
+          <p className="max-w-2xl font-inter text-base font-light leading-relaxed text-muted md:text-lg">
+            Choose the monthly social media plan that fits your brand, with content, production and page management in one place.
+          </p>
+        </motion.div>
+
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-80px" }}
+          onScroll={(event) => updateSwipeCardEffects(event.currentTarget)}
+          tabIndex={0}
+          aria-label="Swipe horizontally to compare monthly plans"
+          className="relative -mx-6 mt-14 flex snap-x snap-proximity items-stretch gap-4 overflow-x-auto px-6 pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-2 md:gap-5 md:overflow-visible md:p-0 xl:grid-cols-3 xl:gap-7"
+        >
+          {MONTHLY_PACKAGES.map((pkg) => {
+            const featured = pkg.id === "premium-growth";
+            return (
+              <motion.article
+                key={pkg.id}
+                variants={cardVariants}
+                data-swipe-card
+                className={`group relative flex h-full w-[78vw] max-w-[24rem] shrink-0 snap-center flex-col overflow-hidden rounded-3xl border p-7 backdrop-blur-xl transition-[border-color,background-color,box-shadow] duration-300 hover:-translate-y-2 md:w-auto md:max-w-none md:p-8 ${
+                  featured
+                    ? "border-[#FF7A00]/50 bg-gradient-to-b from-[#FF7A00]/[0.11] via-[#0b0b0d]/95 to-[#0b0b0d]/95 shadow-[0_20px_60px_rgba(255,122,0,0.09)]"
+                    : "border-white/10 bg-white/[0.025] hover:border-white/25 hover:bg-white/[0.04]"
+                }`}
+              >
+                <div className="pointer-events-none absolute -right-20 -top-20 h-48 w-48 rounded-full bg-[#FF7A00]/[0.08] blur-3xl transition-opacity duration-500 group-hover:opacity-150" />
+                {featured && (
+                  <div className="relative mb-5 inline-flex w-fit items-center gap-1.5 rounded-full border border-[#FF7A00]/30 bg-[#FF7A00]/10 px-3 py-1 font-poppins text-[10px] font-semibold uppercase tracking-[0.18em] text-[#FF7A00]">
+                    <Star className="h-3 w-3 fill-current" /> Best Value
+                  </div>
+                )}
+                <div className="relative">
+                  <p className="font-poppins text-xs font-medium uppercase tracking-[0.2em] text-white/45">
+                    {pkg.id === "starter" ? "Start strong" : pkg.id === "professional" ? "Stay consistent" : "Grow faster"}
+                  </p>
+                  <h3 className="mt-2 font-geist text-2xl font-semibold tracking-tight text-white md:text-3xl">
+                    {pkg.name}
+                  </h3>
+                  <p className="mt-3 min-h-10 font-inter text-sm leading-relaxed text-white/55">
+                    {pkg.description}
+                  </p>
+                </div>
+
+                <div className="relative mt-6 border-b border-white/10 pb-6">
+                  <span className="font-geist text-4xl font-semibold tracking-tight text-white md:text-5xl">{pkg.price}</span>
+                  <span className="ml-2 font-inter text-sm text-white/45">/ month</span>
+                </div>
+
+                <div className="relative flex-1 py-6">
+                  <p className="mb-4 font-poppins text-[10px] font-semibold uppercase tracking-[0.2em] text-white/40">
+                    What&apos;s included
+                  </p>
+                  <ul className="flex flex-col gap-3">
+                    {pkg.features.map((feature) => (
+                      <li key={feature} className="flex items-start gap-3 font-inter text-sm leading-relaxed text-white/75">
+                        <Check className="mt-0.5 h-4 w-4 shrink-0 text-[#FF7A00]" />
+                        <span>{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => openModal(pkg.id)}
+                  className={`group/choose relative mt-2 inline-flex w-full items-center justify-center gap-2 rounded-full border px-5 py-3.5 font-poppins text-xs font-semibold uppercase tracking-[0.16em] transition-all duration-300 ${
+                    featured
+                      ? "border-[#FF7A00] bg-[#FF7A00] text-black hover:bg-[#ff9638]"
+                      : "border-white/15 bg-white/[0.03] text-white/80 hover:border-[#FF7A00]/60 hover:bg-[#FF7A00]/10 hover:text-[#FF7A00]"
+                  }`}
+                >
+                  Choose this plan
+                  <ArrowUpRight className="h-4 w-4 transition-transform duration-300 group-hover/choose:translate-x-0.5 group-hover/choose:-translate-y-0.5" />
+                </button>
+              </motion.article>
+            );
+          })}
+        </motion.div>
+        <p className="relative mt-6 font-inter text-xs leading-relaxed text-white/40">
+          Advertising budget for Meta Ads / Google Ads, if required, is separate.
+        </p>
+      </section>
+
+      {/* ────────────────────────────────────────────────────────────
+          03 — ABOUT OUR TEAM (OFFICIAL TEAM SHOWCASE WITH AVATARS)
           ──────────────────────────────────────────────────────────── */}
       <section
         id="about"
@@ -803,7 +1229,7 @@ export function Sections() {
           <div className="inline-flex items-center gap-2 rounded-full border border-[#FF7A00]/25 bg-[#FF7A00]/[0.05] px-4 py-1.5 backdrop-blur-md w-fit">
             <span className="h-2 w-2 rounded-full bg-[#FF7A00] animate-pulse" />
             <span className="font-poppins text-xs font-medium uppercase tracking-[0.35em] text-[#FF7A00]">
-              02 — ABOUT OUR TEAM
+              03 — ABOUT OUR TEAM
             </span>
           </div>
 
@@ -831,12 +1257,12 @@ export function Sections() {
       </section>
 
       {/* ────────────────────────────────────────────────────────────
-          03 — OUR PROCESS (PREMIUM CINEMATIC WORKFLOW)
+          04 — OUR PROCESS (PREMIUM CINEMATIC WORKFLOW)
           ──────────────────────────────────────────────────────────── */}
       <ProcessSection />
 
       {/* ────────────────────────────────────────────────────────────
-          04 — CONTACT
+          05 — CONTACT
           ──────────────────────────────────────────────────────────── */}
       <ContactSection />
 
@@ -845,10 +1271,10 @@ export function Sections() {
         <div className="pointer-events-none absolute bottom-0 right-0 h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.03)_0%,transparent_70%)] blur-3xl" />
         
         <div className="mx-auto max-w-[1600px]">
-          <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-12 lg:gap-8 pb-12">
+          <div className="grid grid-cols-2 gap-x-6 gap-y-8 pb-12 md:gap-y-10 lg:grid-cols-12 lg:gap-8">
             
             {/* BRAND COLUMN */}
-            <div className="flex flex-col gap-5 lg:col-span-5">
+            <div className="col-span-2 flex flex-col gap-5 lg:col-span-5">
               <a
                 href="#"
                 className="group flex items-center gap-3.5 py-1 text-text transition-opacity duration-300 hover:opacity-90 w-fit"
@@ -880,6 +1306,11 @@ export function Sections() {
                   </a>
                 </li>
                 <li>
+                  <a href="#plans" className="font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-300 hover:text-white">
+                    Monthly Plans
+                  </a>
+                </li>
+                <li>
                   <a href="#about" className="font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-300 hover:text-white">
                     About Team
                   </a>
@@ -908,8 +1339,9 @@ export function Sections() {
                     href="https://www.instagram.com/a2_production1?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-300 hover:text-white"
+                    className="group/social inline-flex items-center gap-2.5 font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-200 hover:text-white"
                   >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.025] text-[#C98A3D]/75 transition-colors duration-200 group-hover/social:border-[#C98A3D]/30 group-hover/social:text-[#d7aa77]"><InstagramIcon className="h-3.5 w-3.5" /></span>
                     Instagram
                   </a>
                 </li>
@@ -918,24 +1350,32 @@ export function Sections() {
                     href="https://wa.me/919330683966"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-300 hover:text-white"
+                    className="group/social inline-flex items-center gap-2.5 font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-200 hover:text-white"
                   >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.025] text-[#C98A3D]/75 transition-colors duration-200 group-hover/social:border-[#C98A3D]/30 group-hover/social:text-[#d7aa77]"><WhatsappIcon className="h-3.5 w-3.5" /></span>
                     WhatsApp
                   </a>
                 </li>
                 <li>
                   <a
                     href="mailto:a2production440@gmail.com"
-                    className="font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-300 hover:text-white"
+                    className="group/social inline-flex items-center gap-2.5 font-inter text-sm font-light text-[#a1a1aa] transition-colors duration-200 hover:text-white"
                   >
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.025] text-[#C98A3D]/75 transition-colors duration-200 group-hover/social:border-[#C98A3D]/30 group-hover/social:text-[#d7aa77]"><Mail className="h-3.5 w-3.5" /></span>
                     Email
                   </a>
+                </li>
+                <li>
+                  <span title="Facebook page link will be added when available" className="inline-flex cursor-not-allowed items-center gap-2.5 font-inter text-sm font-light text-[#a1a1aa]/55">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.06] bg-white/[0.018] text-[#C98A3D]/45"><FacebookIcon className="h-3.5 w-3.5" /></span>
+                    Facebook
+                  </span>
                 </li>
               </ul>
             </div>
 
             {/* LOCATION COLUMN */}
-            <div className="flex flex-col gap-4 lg:col-span-3">
+            <div className="col-span-2 flex flex-col gap-4 lg:col-span-3">
               <span className="font-poppins text-xs font-bold uppercase tracking-wider text-[#FF7A00]/80">
                 Location
               </span>

@@ -42,6 +42,7 @@ function WhatsappIcon(props: React.SVGProps<SVGSVGElement>) {
 
 const LINKS = [
   { label: "Services", href: "#services" },
+  { label: "Monthly Plans", href: "#plans" },
   { label: "About", href: "#about" },
   { label: "Process", href: "#process" },
   { label: "Contact", href: "#contact" },

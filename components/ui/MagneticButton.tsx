@@ -20,6 +20,7 @@ export function MagneticButton({
   type = "button",
 }: MagneticButtonProps) {
   const btnRef = useRef<HTMLButtonElement>(null);
+  const centerRef = useRef<{ x: number; y: number } | null>(null);
   const quickRef = useRef<{
     x: ReturnType<typeof gsap.quickTo>;
     y: ReturnType<typeof gsap.quickTo>;
@@ -28,24 +29,33 @@ export function MagneticButton({
   const ensureQuick = () => {
     if (!quickRef.current && btnRef.current) {
       quickRef.current = {
-        x: gsap.quickTo(btnRef.current, "x", { duration: 0.5, ease: "power3.out" }),
-        y: gsap.quickTo(btnRef.current, "y", { duration: 0.5, ease: "power3.out" }),
+        x: gsap.quickTo(btnRef.current, "x", { duration: 0.18, ease: "power2.out" }),
+        y: gsap.quickTo(btnRef.current, "y", { duration: 0.18, ease: "power2.out" }),
       };
     }
   };
 
-  const handleMouseMove = (e: MouseEvent<HTMLButtonElement>) => {
+  const handleMouseEnter = () => {
     const btn = btnRef.current;
     if (!btn) return;
-    ensureQuick();
     const rect = btn.getBoundingClientRect();
-    const relX = e.clientX - rect.left - rect.width / 2;
-    const relY = e.clientY - rect.top - rect.height / 2;
-    quickRef.current?.x(relX * 0.35);
-    quickRef.current?.y(relY * 0.35);
+    centerRef.current = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+    };
+    ensureQuick();
+  };
+
+  const handleMouseMove = (e: MouseEvent<HTMLButtonElement>) => {
+    const center = centerRef.current;
+    if (!center) return;
+    ensureQuick();
+    quickRef.current?.x((e.clientX - center.x) * 0.18);
+    quickRef.current?.y((e.clientY - center.y) * 0.18);
   };
 
   const handleMouseLeave = () => {
+    centerRef.current = null;
     ensureQuick();
     quickRef.current?.x(0);
     quickRef.current?.y(0);
@@ -72,6 +82,7 @@ export function MagneticButton({
     <button
       ref={btnRef}
       type={type}
+      onMouseEnter={handleMouseEnter}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onClick={handleClick}

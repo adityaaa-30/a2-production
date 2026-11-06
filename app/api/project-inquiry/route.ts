@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { MONTHLY_PACKAGES } from "@/lib/monthly-packages";
 
 /**
  * Utility function to HTML-escape user inputs.
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
       phoneNumber,
       email,
       timeline,
-      services,
+      monthlyPackage,
       description,
       consent,
       websiteUrl,
@@ -80,15 +81,24 @@ export async function POST(request: NextRequest) {
     }
 
     // Escape for safe storage
-    const safeTimeline = typeof timeline === "string" ? escapeHtml(timeline.trim()) : "";
-    const safeServices = Array.isArray(services)
-      ? services.map((s) => (typeof s === "string" ? escapeHtml(s.trim()) : "")).filter(Boolean)
-      : [];
+    const selectedPackage =
+      typeof monthlyPackage === "string"
+        ? MONTHLY_PACKAGES.find((pkg) => pkg.id === monthlyPackage)
+        : undefined;
+    if (monthlyPackage && !selectedPackage) {
+      return NextResponse.json(
+        { error: "Please select a valid monthly package." },
+        { status: 400 }
+      );
+    }
 
+    const safeTimeline = typeof timeline === "string" ? escapeHtml(timeline.trim()) : "";
+    const packageText = selectedPackage
+      ? `Package: ${escapeHtml(selectedPackage.name)} (${escapeHtml(selectedPackage.price)}/month)`
+      : "";
     const timelineText = safeTimeline ? `Timeline: ${safeTimeline}` : "";
-    const servicesText = safeServices.length > 0 ? `Services: ${safeServices.join(", ")}` : "";
     const budgetOrTimeline =
-      [timelineText, servicesText].filter(Boolean).join(" | ") || "Not specified";
+      [packageText, timelineText].filter(Boolean).join(" | ") || "Not specified";
 
     // ── 4. Save to Supabase ──
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;

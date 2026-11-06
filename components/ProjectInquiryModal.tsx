@@ -13,6 +13,7 @@ import {
   ArrowUpRight,
   Loader2,
 } from "lucide-react";
+import { MONTHLY_PACKAGES } from "@/lib/monthly-packages";
 
 
 /* ═══════════════════════════════════════════════════════════════
@@ -35,14 +36,6 @@ const TIMELINES = [
   "Within 2 Weeks",
   "Within 1 Month",
   "Flexible",
-];
-
-const SERVICES = [
-  "Commercial Shoot", "Brand Film", "Product Shoot", "Advertisement",
-  "Instagram Reels", "YouTube Video", "Photography", "Video Editing",
-  "Color Grading", "Website Design", "Website Development",
-  "UI/UX Design", "Social Media Content", "Logo Design",
-  "Brand Identity", "Other",
 ];
 
 const COUNTRY_CODES = [
@@ -104,7 +97,7 @@ const formSchema = z.object({
     .refine((v) => v.length <= 100, "Email must not exceed 100 characters")
     .refine((v) => EMAIL_REGEX.test(v), "Enter a valid email address"),
   timeline: z.string().optional(),
-  services: z.array(z.string()).optional(),
+  monthlyPackage: z.string().optional(),
   description: z
     .string()
     .transform((v) => v.trim())
@@ -315,11 +308,13 @@ function SimpleSelect({
   value,
   onChange,
   placeholder,
+  optionDetails,
 }: {
   options: string[];
   value: string;
   onChange: (val: string) => void;
   placeholder: string;
+  optionDetails?: Record<string, string>;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -339,13 +334,20 @@ function SimpleSelect({
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`${inputClasses} flex items-center justify-between text-left`}
+        className={`${inputClasses} group flex items-center justify-between text-left hover:border-[#FF7A00]/45 hover:shadow-[0_0_22px_rgba(255,122,0,0.08)] active:scale-[0.995]`}
       >
-        <span className={value ? "text-white" : "text-white/25"}>
-          {value || placeholder}
+        <span className="flex min-w-0 items-center gap-3">
+          <span className={value ? "truncate text-white" : "text-white/35"}>
+            {value || placeholder}
+          </span>
+          {value && optionDetails?.[value] && (
+            <span className="shrink-0 rounded-full border border-[#FF7A00]/20 bg-[#FF7A00]/[0.08] px-2.5 py-1 font-poppins text-xs font-medium text-[#FF7A00]">
+              {optionDetails[value]}<span className="ml-1 text-[10px] text-[#FF7A00]/65">/ mo</span>
+            </span>
+          )}
         </span>
         <ChevronDown
-          className={`h-4 w-4 text-white/30 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
+          className={`h-4 w-4 shrink-0 text-white/40 transition-all duration-300 ${open ? "rotate-180 text-[#FF7A00]" : "group-hover:text-[#FF7A00]"}`}
         />
       </button>
       <AnimatePresence>
@@ -354,76 +356,58 @@ function SimpleSelect({
             initial={{ opacity: 0, y: -8, scale: 0.97 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -8, scale: 0.97 }}
-            transition={{ duration: 0.2 }}
-            className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-white/10 bg-[#0d0d0f]/95 shadow-2xl backdrop-blur-xl"
+            transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute z-50 mt-2 w-full overflow-hidden rounded-2xl border border-[#FF7A00]/20 bg-[#0b0b0d]/[0.98] shadow-[0_18px_55px_rgba(0,0,0,0.6),0_0_25px_rgba(255,122,0,0.07)] backdrop-blur-2xl"
           >
+            {optionDetails ? (
+              <div className="flex items-center justify-between border-b border-white/[0.07] px-5 py-3">
+                <span className="font-poppins text-[10px] font-medium uppercase tracking-[0.22em] text-white/35">Monthly plan</span>
+                <span className="font-poppins text-[10px] font-medium uppercase tracking-[0.18em] text-white/35">Price</span>
+              </div>
+            ) : (
+              <div className="h-px bg-white/[0.07]" />
+            )}
             <div
               className="max-h-52 overflow-y-auto custom-scrollbar overscroll-contain"
               data-lenis-prevent
             >
               {options.map((option) => (
-                <button
+                <motion.button
                   key={option}
                   type="button"
                   onClick={() => {
                     onChange(option);
                     setOpen(false);
                   }}
-                  className={`block w-full px-4 py-3 text-left font-inter text-sm transition-colors duration-200 ${
+                  whileHover={{ x: 4 }}
+                  whileTap={{ scale: 0.995 }}
+                  transition={{ duration: 0.16 }}
+                  className={`group/option flex w-full items-center justify-between gap-4 border-l-2 px-5 py-3.5 text-left font-inter text-sm transition-all duration-200 ${
                     value === option
-                      ? "bg-[#FF7A00]/10 text-[#FF7A00]"
-                      : "text-white/70 hover:bg-white/5 hover:text-white"
+                      ? "border-[#FF7A00] bg-[#FF7A00]/[0.09] text-white"
+                      : "border-transparent text-white/70 hover:border-[#FF7A00]/50 hover:bg-white/[0.045] hover:text-white"
                   }`}
                 >
-                  {option}
-                </button>
+                  <span className="flex items-center gap-3">
+                    <span className={`flex h-7 w-7 items-center justify-center rounded-lg border text-[10px] font-semibold transition-all duration-200 ${value === option ? "border-[#FF7A00]/35 bg-[#FF7A00]/10 text-[#FF7A00]" : "border-white/10 bg-white/[0.025] text-white/35 group-hover/option:border-[#FF7A00]/25 group-hover/option:text-[#FF7A00]"}`}>
+                      {String(options.indexOf(option) + 1).padStart(2, "0")}
+                    </span>
+                    <span className="font-medium">{option}</span>
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2">
+                    {optionDetails?.[option] && (
+                      <span className={`font-poppins text-sm font-semibold transition-colors ${value === option ? "text-[#FF7A00]" : "text-white/60 group-hover/option:text-[#FF7A00]"}`}>
+                        {optionDetails[option]}<span className="ml-1 text-[10px] font-normal text-white/35">/ mo</span>
+                      </span>
+                    )}
+                    {value === option && <Check className="h-4 w-4 text-[#FF7A00]" />}
+                  </span>
+                </motion.button>
               ))}
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-/* ── Multi-Select Chips ── */
-function MultiSelect({
-  options,
-  value,
-  onChange,
-}: {
-  options: string[];
-  value: string[];
-  onChange: (val: string[]) => void;
-}) {
-  const toggle = (opt: string) => {
-    if (value.includes(opt)) {
-      onChange(value.filter((v) => v !== opt));
-    } else {
-      onChange([...value, opt]);
-    }
-  };
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((option) => {
-        const selected = value.includes(option);
-        return (
-          <button
-            key={option}
-            type="button"
-            onClick={() => toggle(option)}
-            className={`rounded-full border px-4 py-2 font-inter text-xs transition-all duration-300 ${
-              selected
-                ? "border-[#FF7A00]/50 bg-[#FF7A00]/15 text-[#FF7A00] shadow-[0_0_12px_rgba(255,122,0,0.15)]"
-                : "border-white/10 bg-white/[0.02] text-white/50 hover:border-white/20 hover:text-white/70"
-            }`}
-          >
-            {selected && <Check className="mr-1.5 inline h-3 w-3" />}
-            {option}
-          </button>
-        );
-      })}
     </div>
   );
 }
@@ -472,15 +456,19 @@ function AnimatedCheckmark() {
 interface ProjectInquiryModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialPackage?: string;
 }
 
 export function ProjectInquiryModal({
   isOpen,
   onClose,
+  initialPackage,
 }: ProjectInquiryModalProps) {
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const glassReflectionRef = useRef<HTMLDivElement>(null);
+  const ambientGlowRef = useRef<HTMLDivElement>(null);
 
   // Auto-hide toast notification after 5 seconds
   useEffect(() => {
@@ -495,6 +483,7 @@ export function ProjectInquiryModal({
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isValid },
   } = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -507,11 +496,17 @@ export function ProjectInquiryModal({
       phoneNumber: "",
       email: "",
       timeline: "",
-      services: [],
+      monthlyPackage: "",
       description: "",
       consent: true,
     },
   });
+
+  useEffect(() => {
+    if (isOpen) {
+      setValue("monthlyPackage", initialPackage || "");
+    }
+  }, [initialPackage, isOpen, setValue]);
 
   const [formStartTime, setFormStartTime] = useState<number>(0);
 
@@ -658,7 +653,7 @@ export function ProjectInquiryModal({
           initial="hidden"
           animate="visible"
           exit="exit"
-          className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto overscroll-contain bg-black/80 backdrop-blur-xl"
+          className="fixed inset-0 z-[100] flex items-start justify-center overflow-y-auto overscroll-contain bg-black/55 backdrop-blur-md"
           data-lenis-prevent
           onClick={(e) => {
             if (e.target === e.currentTarget) handleClose();
@@ -703,9 +698,19 @@ export function ProjectInquiryModal({
             className="relative w-full max-w-3xl mx-4 my-8 md:my-12"
           >
             {/* ── Glassmorphism Container ── */}
-            <div className="relative overflow-hidden rounded-[30px] border border-white/[0.08] bg-[#0a0a0c]/95 shadow-[0_30px_100px_rgba(0,0,0,0.8)] backdrop-blur-2xl">
-              {/* Ambient glow */}
-              <div className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 h-80 w-[500px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.08)_0%,transparent_70%)] blur-3xl" />
+            <div className="relative isolate overflow-hidden rounded-[30px] border border-white/[0.16] bg-[linear-gradient(135deg,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0.055)_24%,rgba(10,12,18,0.82)_65%,rgba(255,122,0,0.045)_100%)] shadow-[0_35px_110px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-[40px] backdrop-saturate-150">
+              {/* Soft glass reflections */}
+              <div
+                ref={glassReflectionRef}
+                className="pointer-events-none absolute inset-0 rounded-[inherit] bg-[linear-gradient(120deg,rgba(255,255,255,0.09)_0%,transparent_28%,transparent_70%,rgba(255,122,0,0.035)_100%)]"
+                style={{ willChange: "transform" }}
+              />
+              <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent" />
+              <div
+                ref={ambientGlowRef}
+                className="pointer-events-none absolute -top-40 left-1/2 h-80 w-[500px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.11)_0%,transparent_70%)] blur-3xl"
+                style={{ willChange: "transform", transform: "translate3d(-50%, 0, 0)" }}
+              />
 
               {/* Close button */}
               <button
@@ -718,8 +723,19 @@ export function ProjectInquiryModal({
 
               <div
                 ref={scrollContainerRef}
-                className="max-h-[85vh] overflow-y-auto custom-scrollbar overscroll-contain"
+                className="relative z-10 max-h-[85vh] overflow-y-auto custom-scrollbar overscroll-contain"
                 data-lenis-prevent
+                onScroll={(event) => {
+                  const scrollTop = event.currentTarget.scrollTop;
+                  const parallax = Math.min(scrollTop, 1200);
+                  const driftX = Math.sin(scrollTop / 220) * 7;
+                  if (glassReflectionRef.current) {
+                    glassReflectionRef.current.style.transform = `translate3d(${driftX}px, ${parallax * 0.018}px, 0) scale(1.025)`;
+                  }
+                  if (ambientGlowRef.current) {
+                    ambientGlowRef.current.style.transform = `translate3d(calc(-50% + ${driftX * -1.5}px), ${parallax * 0.055}px, 0)`;
+                  }
+                }}
               >
                 <div className="px-8 py-12 md:px-14 md:py-16">
                   <AnimatePresence mode="wait">
@@ -952,17 +968,26 @@ export function ProjectInquiryModal({
                             />
                           </FieldWrapper>
 
-                          {/* Services */}
-                          <FieldWrapper label="Services Required" index={7}>
+                          {/* Monthly Package */}
+                          <FieldWrapper label="Monthly Package" index={7}>
                             <Controller
-                              name="services"
+                              name="monthlyPackage"
                               control={control}
                               render={({ field }) => (
-                                <MultiSelect
-                                  options={SERVICES}
-                                  value={field.value || []}
-                                  onChange={field.onChange}
-                                />
+                                <div className="relative">
+                                  <SimpleSelect
+                                    options={MONTHLY_PACKAGES.map((pkg) => pkg.name)}
+                                    value={MONTHLY_PACKAGES.find((pkg) => pkg.id === field.value)?.name || ""}
+                                    optionDetails={Object.fromEntries(
+                                      MONTHLY_PACKAGES.map((pkg) => [pkg.name, pkg.price])
+                                    )}
+                                    onChange={(name) => {
+                                      const selected = MONTHLY_PACKAGES.find((pkg) => pkg.name === name);
+                                      field.onChange(selected?.id || "");
+                                    }}
+                                    placeholder="Select a monthly plan"
+                                  />
+                                </div>
                               )}
                             />
                           </FieldWrapper>
