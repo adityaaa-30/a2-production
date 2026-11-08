@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect, type ChangeEvent } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -13,51 +13,14 @@ import {
   ArrowUpRight,
   Loader2,
 } from "lucide-react";
-import { MONTHLY_PACKAGES } from "@/lib/monthly-packages";
+import { useMonthlyPackages } from "@/hooks/useMonthlyPackages";
+import { formatMonthlyPrice } from "@/lib/monthly-packages";
+import { BUSINESS_TYPES, PHONE_COUNTRIES as COUNTRY_CODES, PROJECT_TIMELINES as TIMELINES } from "@/lib/project-inquiry-options";
 
 
 /* ═══════════════════════════════════════════════════════════════
    CONSTANTS
    ═══════════════════════════════════════════════════════════════ */
-
-const BUSINESS_TYPES = [
-  "Gym", "Restaurant", "Cafe", "Hotel", "Clothing Brand", "Fitness Brand",
-  "Healthcare", "Medical Clinic", "Real Estate", "Construction",
-  "Photography", "Videography", "Salon", "Barbershop", "Jewellery",
-  "Education", "Coaching Institute", "School", "College",
-  "YouTube Channel", "Influencer", "Personal Brand", "Event Management",
-  "Wedding", "Automobile", "E-Commerce", "Technology", "Startup",
-  "Finance", "Interior Design", "Travel", "NGO", "Other",
-];
-
-const TIMELINES = [
-  "Urgent",
-  "Within 1 Week",
-  "Within 2 Weeks",
-  "Within 1 Month",
-  "Flexible",
-];
-
-const COUNTRY_CODES = [
-  { code: "+91", flag: "🇮🇳", country: "India" },
-  { code: "+1", flag: "🇺🇸", country: "US" },
-  { code: "+44", flag: "🇬🇧", country: "UK" },
-  { code: "+971", flag: "🇦🇪", country: "UAE" },
-  { code: "+61", flag: "🇦🇺", country: "Australia" },
-  { code: "+49", flag: "🇩🇪", country: "Germany" },
-  { code: "+33", flag: "🇫🇷", country: "France" },
-  { code: "+81", flag: "🇯🇵", country: "Japan" },
-  { code: "+86", flag: "🇨🇳", country: "China" },
-  { code: "+966", flag: "🇸🇦", country: "Saudi Arabia" },
-  { code: "+65", flag: "🇸🇬", country: "Singapore" },
-  { code: "+60", flag: "🇲🇾", country: "Malaysia" },
-  { code: "+977", flag: "🇳🇵", country: "Nepal" },
-  { code: "+880", flag: "🇧🇩", country: "Bangladesh" },
-  { code: "+94", flag: "🇱🇰", country: "Sri Lanka" },
-  { code: "+92", flag: "🇵🇰", country: "Pakistan" },
-];
-
-
 
 /* ═══════════════════════════════════════════════════════════════
    SCHEMA
@@ -209,7 +172,7 @@ function SearchableSelect({
   onChange,
   placeholder,
 }: {
-  options: string[];
+  options: readonly string[];
   value: string;
   onChange: (val: string) => void;
   placeholder: string;
@@ -310,7 +273,7 @@ function SimpleSelect({
   placeholder,
   optionDetails,
 }: {
-  options: string[];
+  options: readonly string[];
   value: string;
   onChange: (val: string) => void;
   placeholder: string;
@@ -464,9 +427,11 @@ export function ProjectInquiryModal({
   onClose,
   initialPackage,
 }: ProjectInquiryModalProps) {
+  const monthlyPackages = useMonthlyPackages();
   const [status, setStatus] = useState<"idle" | "submitting" | "success" | "error">("idle");
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const glassReflectionRef = useRef<HTMLDivElement>(null);
   const ambientGlowRef = useRef<HTMLDivElement>(null);
 
@@ -508,14 +473,11 @@ export function ProjectInquiryModal({
     }
   }, [initialPackage, isOpen, setValue]);
 
-  const [formStartTime, setFormStartTime] = useState<number>(0);
-
-  // Lock body and html scroll when modal is open and track form start time
+  // Lock body and html scroll while the inquiry form is open.
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
       document.documentElement.style.overflow = "hidden";
-      setFormStartTime(Date.now());
     }
     return () => {
       document.body.style.overflow = "";
@@ -533,15 +495,61 @@ export function ProjectInquiryModal({
       reset();
     }, 400);
   }, [onClose, reset, status]);
-
-  // Handle ESC key
+  const handleCloseRef = useRef(handleClose);
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") handleClose();
+    handleCloseRef.current = handleClose;
+  }, [handleClose]);
+
+  // Keep keyboard focus inside the modal and restore it to the opener on close.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : null;
+    const focusFrame = window.requestAnimationFrame(() => {
+      const firstFocusable = dialogRef.current?.querySelector<HTMLElement>(
+        'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+      );
+      (firstFocusable || dialogRef.current)?.focus({ preventScroll: true });
+    });
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        handleCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const focusable = Array.from(
+        dialogRef.current?.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        ) || [],
+      ).filter((element) => element.getClientRects().length > 0);
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialogRef.current?.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
-    if (isOpen) window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isOpen, handleClose]);
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      window.removeEventListener("keydown", onKeyDown);
+      previousFocus?.focus({ preventScroll: true });
+    };
+  }, [isOpen]);
 
 
 
@@ -588,7 +596,7 @@ export function ProjectInquiryModal({
       const emailRes = await fetch("/api/project-inquiry", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, formStartTime }),
+        body: JSON.stringify(data),
       });
 
       const responseBody = await emailRes.json().catch(() => null);
@@ -691,11 +699,16 @@ export function ProjectInquiryModal({
             )}
           </AnimatePresence>
           <motion.div
+                ref={dialogRef}
             variants={modalVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
             className="relative w-full max-w-3xl mx-4 my-8 md:my-12"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="project-inquiry-title"
+                tabIndex={-1}
           >
             {/* ── Glassmorphism Container ── */}
             <div className="relative isolate overflow-hidden rounded-[30px] border border-white/[0.16] bg-[linear-gradient(135deg,rgba(255,255,255,0.12)_0%,rgba(255,255,255,0.055)_24%,rgba(10,12,18,0.82)_65%,rgba(255,122,0,0.045)_100%)] shadow-[0_35px_110px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.28)] backdrop-blur-[40px] backdrop-saturate-150">
@@ -752,7 +765,7 @@ export function ProjectInquiryModal({
                         <AnimatedCheckmark />
 
                         <div className="flex flex-col gap-4">
-                          <h2 className="font-geist text-3xl font-bold tracking-tight text-white md:text-4xl">
+                          <h2 id="project-inquiry-title" className="font-geist text-3xl font-bold tracking-tight text-white md:text-4xl">
                             Project Submitted Successfully
                           </h2>
                           <p className="mx-auto max-w-md font-inter text-base font-light text-white/50 leading-relaxed">
@@ -794,7 +807,7 @@ export function ProjectInquiryModal({
                             </span>
                           </div>
 
-                          <h2 className="font-geist text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.1] tracking-tight text-white mb-4">
+                          <h2 id="project-inquiry-title" className="font-geist text-[clamp(1.75rem,4vw,2.75rem)] font-bold leading-[1.1] tracking-tight text-white mb-4">
                             Let&apos;s Build Something
                             <br />
                             <span className="bg-gradient-to-r from-[#FF7A00] to-[#FF9A40] bg-clip-text text-transparent">
@@ -976,13 +989,18 @@ export function ProjectInquiryModal({
                               render={({ field }) => (
                                 <div className="relative">
                                   <SimpleSelect
-                                    options={MONTHLY_PACKAGES.map((pkg) => pkg.name)}
-                                    value={MONTHLY_PACKAGES.find((pkg) => pkg.id === field.value)?.name || ""}
+                                    options={monthlyPackages.map((pkg) => pkg.name)}
+                                    value={monthlyPackages.find((pkg) => pkg.id === field.value)?.name || ""}
                                     optionDetails={Object.fromEntries(
-                                      MONTHLY_PACKAGES.map((pkg) => [pkg.name, pkg.price])
+                                      monthlyPackages.map((pkg) => [
+                                        pkg.name,
+                                        pkg.offerPriceInr
+                                          ? `${formatMonthlyPrice(pkg.offerPriceInr)} offer (was ${pkg.price})`
+                                          : pkg.price,
+                                      ])
                                     )}
                                     onChange={(name) => {
-                                      const selected = MONTHLY_PACKAGES.find((pkg) => pkg.name === name);
+                                      const selected = monthlyPackages.find((pkg) => pkg.name === name);
                                       field.onChange(selected?.id || "");
                                     }}
                                     placeholder="Select a monthly plan"

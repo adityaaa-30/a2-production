@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SmoothScrollProvider } from "@/components/SmoothScrollProvider";
@@ -20,13 +21,29 @@ export const metadata: Metadata = {
   title: "A2 Production — Crafting Digital Experiences That Inspire",
   description:
     "A2 Production is a creative digital agency crafting brands, products, and motion for companies who refuse to blend in.",
+  openGraph: {
+    type: "website",
+    locale: "en_IN",
+    siteName: "A2 Production",
+    title: "A2 Production — Crafting Digital Experiences That Inspire",
+    description:
+      "A2 Production is a creative digital agency crafting brands, products, and motion for companies who refuse to blend in.",
+  },
+  twitter: {
+    card: "summary",
+    title: "A2 Production — Crafting Digital Experiences That Inspire",
+    description:
+      "A2 Production is a creative digital agency crafting brands, products, and motion for companies who refuse to blend in.",
+  },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  await connection();
+
   return (
     <html
       lang="en"

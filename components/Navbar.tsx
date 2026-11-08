@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Mail, Menu, X } from "lucide-react";
+import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { MagneticButton } from "@/components/ui/MagneticButton";
 import { useProjectInquiryModal } from "@/components/ProjectInquiryContext";
+import { supabase } from "@/lib/supabase";
 
 function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -46,6 +49,7 @@ const LINKS = [
   { label: "About", href: "#about" },
   { label: "Process", href: "#process" },
   { label: "Contact", href: "#contact" },
+  { label: "Admin", href: "/admin" },
 ];
 
 const SOCIAL_LINKS = [
@@ -67,14 +71,46 @@ const SOCIAL_LINKS = [
 ];
 
 export function Navbar() {
+  const pathname = usePathname();
+  const isAdminRoute = pathname === "/admin" || pathname.startsWith("/admin/");
+  const isHomeRoute = pathname === "/";
+  const resolveLinkHref = (href: string) =>
+    !isHomeRoute && href.startsWith("#") ? `/${href}` : href;
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const [activeItem, setActiveItem] = useState<string | null>(null);
+  const [hasAdminSession, setHasAdminSession] = useState(false);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
+  const menuTriggerRef = useRef<HTMLButtonElement>(null);
+  const closeMenuRef = useRef<HTMLButtonElement>(null);
   const { openModal } = useProjectInquiryModal();
 
   const handleClose = useCallback(() => {
     setOpen(false);
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    const updateAdminSession = (session: Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]) => {
+      if (active) setHasAdminSession(session?.user.app_metadata?.role === "admin");
+    };
+
+    void supabase.auth.getSession().then(({ data }) => updateAdminSession(data.session));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      updateAdminSession(session);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  const guardAdminNavigation = (event: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (!isAdminRoute || !hasAdminSession || href.startsWith("/admin")) return;
+    event.preventDefault();
+    window.dispatchEvent(new CustomEvent("a2:admin-exit-request", { detail: { href } }));
+  };
 
   useEffect(() => {
     const onScroll = () => {
@@ -102,13 +138,44 @@ export function Navbar() {
     if (open) {
       window.dispatchEvent(new CustomEvent("a2:mobile-menu-open"));
       document.body.style.overflow = "hidden";
+      const previousFocus = document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+      const focusFrame = window.requestAnimationFrame(() => {
+        closeMenuRef.current?.focus({ preventScroll: true });
+      });
       const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === "Escape") handleClose();
+        if (e.key === "Escape") {
+          handleClose();
+          return;
+        }
+        if (e.key !== "Tab") return;
+        const focusable = Array.from(
+          mobileMenuRef.current?.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          ) || [],
+        ).filter((element) => element.getClientRects().length > 0);
+        if (focusable.length === 0) {
+          e.preventDefault();
+          mobileMenuRef.current?.focus();
+          return;
+        }
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       };
       window.addEventListener("keydown", handleKeyDown);
       return () => {
         document.body.style.overflow = "";
+        window.cancelAnimationFrame(focusFrame);
         window.removeEventListener("keydown", handleKeyDown);
+        previousFocus?.focus({ preventScroll: true });
       };
     } else {
       document.body.style.overflow = "";
@@ -126,13 +193,16 @@ export function Navbar() {
       >
         <nav className="mx-auto flex h-20 max-w-[1600px] items-center justify-between px-6 md:px-14">
           <a
-            href="#"
+            href={isHomeRoute ? "#" : "/"}
+            onClick={(event) => guardAdminNavigation(event, isHomeRoute ? "#" : "/")}
             className="group flex items-center gap-3.5 py-1 text-text transition-opacity duration-300 hover:opacity-90"
             aria-label="A2 Production"
           >
-            <img
+            <Image
               src="/images/a2-symbol-only.png"
-              alt="A2 Logo"
+              alt=""
+              width={60}
+              height={45}
               className="h-8 md:h-[38px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
             />
             <span className="font-geist text-xs md:text-[13px] font-medium tracking-[0.38em] uppercase bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent transition-all duration-300 group-hover:tracking-[0.42em]">
@@ -144,7 +214,8 @@ export function Navbar() {
             {LINKS.map((link) => (
               <li key={link.href}>
                 <a
-                  href={link.href}
+                  href={resolveLinkHref(link.href)}
+                  onClick={(event) => guardAdminNavigation(event, resolveLinkHref(link.href))}
                   className="nav-link font-inter text-sm text-muted transition-colors duration-300 hover:text-text"
                 >
                   {link.label}
@@ -153,21 +224,25 @@ export function Navbar() {
             ))}
           </ul>
 
-          <div className="hidden md:block">
-            <MagneticButton
-              variant="ghost"
-              className="px-6 py-3 text-xs"
-              onClick={openModal}
-            >
-              Start a Project
-            </MagneticButton>
-          </div>
+          {!isAdminRoute && (
+            <div className="hidden md:block">
+              <MagneticButton
+                variant="ghost"
+                className="px-6 py-3 text-xs"
+                onClick={openModal}
+              >
+                Start a Project
+              </MagneticButton>
+            </div>
+          )}
 
           {/* Mobile Hamburger Trigger (44px circular glass button) */}
           <button
+            ref={menuTriggerRef}
             className="flex h-11 w-11 items-center justify-center rounded-full border border-white/12 bg-white/[0.04] backdrop-blur-md text-text transition-all duration-300 hover:border-[#FF7A00]/50 hover:bg-[#FF7A00]/10 hover:text-[#FF7A00] active:scale-95 md:hidden shadow-md"
             onClick={() => setOpen(true)}
             aria-label="Open menu"
+            aria-controls="mobile-navigation-dialog"
             aria-expanded={open}
           >
             <Menu size={20} />
@@ -179,11 +254,17 @@ export function Navbar() {
       <AnimatePresence>
         {open && (
           <motion.div
+            ref={mobileMenuRef}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25, ease: "easeOut" }}
             className="fixed inset-0 z-[100] h-[100svh] w-screen bg-[#050505] md:hidden overflow-y-auto"
+            id="mobile-navigation-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Main navigation"
+            tabIndex={-1}
           >
             {/* Subtle Ambient Background Gradient */}
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,122,0,0.05)_0%,transparent_60%)]" />
@@ -204,14 +285,19 @@ export function Navbar() {
               {/* Header Bar */}
               <div className="flex h-14 items-center justify-between">
                 <a
-                  href="#"
-                  onClick={handleClose}
+                  href={isHomeRoute ? "#" : "/"}
+                  onClick={(event) => {
+                    guardAdminNavigation(event, isHomeRoute ? "#" : "/");
+                    handleClose();
+                  }}
                   className="flex items-center gap-2.5"
                   aria-label="A2 Production"
                 >
-                  <img
+                  <Image
                     src="/images/a2-symbol-only.png"
-                    alt="A2 Logo"
+                    alt=""
+                    width={60}
+                    height={45}
                     className="h-7 w-auto object-contain"
                   />
                   <span className="font-geist text-[11px] font-medium tracking-[0.3em] uppercase bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
@@ -221,6 +307,7 @@ export function Navbar() {
 
                 {/* 44px Circular Close Button */}
                 <button
+                  ref={closeMenuRef}
                   onClick={handleClose}
                   className="flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-xl text-white/80 transition-colors duration-200 hover:border-[#FF7A00]/40 hover:text-white active:scale-95"
                   aria-label="Close menu"
@@ -245,8 +332,12 @@ export function Navbar() {
                       className="border-b border-white/[0.08] first:border-t first:border-white/[0.08]"
                     >
                       <motion.a
-                        href={link.href}
-                        onClick={() => {
+                        href={resolveLinkHref(link.href)}
+                        onClick={(event) => {
+                          guardAdminNavigation(event, resolveLinkHref(link.href));
+                          // The navigation guard prevents leaving an authenticated admin page
+                          // until the user chooses to stay or sign out.
+                          // Keep the mobile menu closed while the confirmation is shown.
                           setActiveItem(link.href);
                           handleClose();
                         }}
@@ -270,18 +361,19 @@ export function Navbar() {
                   ))}
                 </ul>
 
-                {/* 85% Width 52px CTA Button */}
-                <div className="mt-8">
-                  <button
-                    onClick={() => {
-                      handleClose();
-                      openModal();
-                    }}
-                    className="w-[85%] max-w-sm mx-auto h-[52px] flex items-center justify-center rounded-full bg-gradient-to-r from-[#FF7A00] via-[#FF8C00] to-[#FFA000] font-poppins text-sm font-semibold tracking-wide text-black shadow-[0_0_25px_rgba(255,122,0,0.3)] transition-transform duration-200 active:scale-[0.98]"
-                  >
-                    Start Your Project
-                  </button>
-                </div>
+                {!isAdminRoute && (
+                  <div className="mt-8">
+                    <button
+                      onClick={() => {
+                        handleClose();
+                        openModal();
+                      }}
+                      className="w-[85%] max-w-sm mx-auto h-[52px] flex items-center justify-center rounded-full bg-gradient-to-r from-[#FF7A00] via-[#FF8C00] to-[#FFA000] font-poppins text-sm font-semibold tracking-wide text-black shadow-[0_0_25px_rgba(255,122,0,0.3)] transition-transform duration-200 active:scale-[0.98]"
+                    >
+                      Start Your Project
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Minimalist Social Footer */}

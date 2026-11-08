@@ -274,6 +274,13 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-hero-background-video] {
+    visibility: hidden;
+  }
+  [data-hero-video-poster] {
+    opacity: 1 !important;
+    transition: none !important;
+  }
   .service-art__scene,
   .service-art__orbit ellipse,
   .service-art__orbit path,

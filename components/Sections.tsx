@@ -2,6 +2,9 @@
 
 import { useRef, useState, useEffect } from "react";
 import { animate, motion, useMotionValue } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
+import { AmbientLightBackground } from "@/components/AmbientLightBackground";
 import {
   Globe,
   Share2,
@@ -17,7 +20,8 @@ import {
   Check,
   Star,
 } from "lucide-react";
-import { MONTHLY_PACKAGES } from "@/lib/monthly-packages";
+import { useMonthlyPackages } from "@/hooks/useMonthlyPackages";
+import { formatMonthlyPrice } from "@/lib/monthly-packages";
 
 function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
@@ -79,8 +83,6 @@ function WhatsappIcon(props: React.SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
-import { gsap, useGSAP } from "@/lib/gsap";
-import { MagneticButton } from "@/components/ui/MagneticButton";
 import { useProjectInquiryModal } from "@/components/ProjectInquiryContext";
 
 interface BuildCard {
@@ -373,19 +375,21 @@ function updateSwipeCardEffects(track: HTMLDivElement) {
 
 /* ── Floating Particles Background ── */
 function FloatingParticles() {
-  const [particles] = useState(() =>
-    Array.from({ length: 20 }, (_, i) => ({
-      id: i,
-      x: Math.random() * 100,
-      y: Math.random() * 100,
-      size: Math.random() * 3 + 1,
-      duration: Math.random() * 15 + 10,
-      delay: Math.random() * 5,
-    }))
-  );
+  const seededValue = (seed: number) => {
+    const value = Math.sin(seed * 12.9898) * 43758.5453;
+    return value - Math.floor(value);
+  };
+  const particles = Array.from({ length: 20 }, (_, i) => ({
+    id: i,
+    x: seededValue(i + 1) * 100,
+    y: seededValue(i + 101) * 100,
+    size: seededValue(i + 201) * 3 + 1,
+    duration: seededValue(i + 301) * 15 + 10,
+    delay: seededValue(i + 401) * 5,
+  }));
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className="pointer-events-none absolute inset-0 hidden overflow-hidden sm:block">
       {particles.map((p) => (
         <motion.div
           key={p.id}
@@ -437,7 +441,7 @@ function ProcessSection() {
     <section
       ref={sectionRef}
       id="process"
-      className="relative mx-auto w-full max-w-[1600px] border-t border-white/10 px-6 py-32 md:px-14 lg:px-20 overflow-hidden"
+      className="relative mx-auto w-full max-w-[1600px] border-t border-white/10 px-5 py-20 sm:px-6 md:px-14 md:py-32 lg:px-20 overflow-hidden"
     >
       {/* Ambient orange gradient glow */}
       <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[700px] w-[1000px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.04)_0%,transparent_65%)] blur-3xl" />
@@ -451,7 +455,7 @@ function ProcessSection() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
         transition={{ duration: 0.9, ease: [0.215, 0.61, 0.355, 1] }}
-        className="flex flex-col gap-6 md:max-w-3xl mb-20 lg:mb-28"
+        className="mb-12 flex flex-col gap-6 md:mb-20 md:max-w-3xl lg:mb-28"
       >
         <div className="inline-flex items-center gap-2 rounded-full border border-[#FF7A00]/25 bg-[#FF7A00]/[0.05] px-4 py-1.5 backdrop-blur-md w-fit">
           <span className="h-2 w-2 rounded-full bg-[#FF7A00] animate-pulse" />
@@ -508,7 +512,7 @@ function ProcessSection() {
               key={step.number}
               variants={processCardVariants}
               data-swipe-card
-              className="group relative flex w-[78vw] max-w-[22rem] shrink-0 snap-center flex-col overflow-hidden rounded-[28px] border border-white/[0.07] bg-white/[0.02] p-7 backdrop-blur-xl transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform md:w-auto md:max-w-none md:p-8 md:hover:-translate-y-3 md:hover:scale-[1.035] md:hover:border-[#FF7A00]/40 md:hover:bg-white/[0.04] md:hover:shadow-[0_20px_60px_rgba(255,122,0,0.12),0_0_30px_rgba(255,122,0,0.06)]"
+              className="group relative flex w-[78vw] max-w-[22rem] shrink-0 snap-center flex-col overflow-hidden rounded-[28px] border border-white/[0.07] bg-[#0a0c12]/35 p-6 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] md:w-auto md:max-w-none md:p-8 md:backdrop-blur-xl md:hover:-translate-y-3 md:hover:scale-[1.035] md:hover:border-[#FF7A00]/40 md:hover:bg-white/[0.04] md:hover:shadow-[0_20px_60px_rgba(255,122,0,0.12),0_0_30px_rgba(255,122,0,0.06)]"
             >
               {/* Glass reflection highlight */}
               <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-gradient-to-br from-white/[0.04] via-transparent to-transparent opacity-40 transition-opacity duration-300 md:group-hover:opacity-100" />
@@ -640,16 +644,21 @@ function TeamCard({ member }: { member: TeamMember }) {
       style={{
         transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg)`,
       }}
-      className="group relative flex h-full flex-col justify-between overflow-hidden rounded-[30px] border border-white/10 bg-[#08080a]/90 backdrop-blur-xl transition-all duration-500 ease-out hover:-translate-y-2 hover:border-[#FF7A00]/50 hover:shadow-[0_20px_50px_rgba(255,122,0,0.15),0_0_30px_rgba(255,122,0,0.08)]"
+      className="group relative flex h-full flex-col justify-between overflow-hidden rounded-[30px] border border-white/20 bg-[linear-gradient(145deg,rgba(255,255,255,0.09),rgba(14,15,22,0.74)_38%,rgba(8,8,10,0.84))] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_18px_50px_rgba(0,0,0,0.3)] transition-all duration-500 ease-out hover:-translate-y-2 hover:border-[#FF7A00]/50 hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.24),0_20px_50px_rgba(255,122,0,0.15),0_0_30px_rgba(255,122,0,0.08)] md:backdrop-blur-2xl"
     >
+      {/* Glass surface sheen */}
+      <div className="pointer-events-none absolute inset-0 z-[1] rounded-[30px] bg-[linear-gradient(132deg,rgba(255,255,255,0.13),transparent_24%,transparent_70%,rgba(255,177,92,0.07))] opacity-75" />
+
       {/* Subtle top ambient glow */}
       <div className="pointer-events-none absolute -top-20 left-1/2 -translate-x-1/2 h-40 w-60 rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.15)_0%,transparent_70%)] blur-2xl opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
       {/* Avatar Image Frame */}
       <div className="relative w-full aspect-[4/4.5] overflow-hidden bg-black/60">
-        <img
+        <Image
           src={member.image}
           alt={member.name}
+          fill
+          sizes="(max-width: 767px) 100vw, (max-width: 1279px) 50vw, 33vw"
           className="h-full w-full object-cover object-top transition-transform duration-700 ease-out group-hover:scale-[1.04]"
         />
 
@@ -669,7 +678,7 @@ function TeamCard({ member }: { member: TeamMember }) {
       </div>
 
       {/* Card Body */}
-      <div className="relative z-10 flex flex-col justify-between flex-1 p-8 md:p-9 pt-2">
+      <div className="relative z-10 -mt-6 flex flex-1 flex-col justify-between rounded-t-[24px] border-t border-white/20 bg-[linear-gradient(145deg,rgba(255,255,255,0.11),rgba(19,20,27,0.72)_45%,rgba(8,8,10,0.7))] p-6 pt-7 md:p-9 md:pt-7 md:backdrop-blur-xl">
         {/* Role & Name */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center text-[11px] font-poppins font-medium uppercase tracking-[3px] text-slate-300">
@@ -754,7 +763,7 @@ function ContactSection() {
   return (
     <section
       id="contact"
-      className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col justify-center border-t border-white/10 px-6 py-28 md:px-14 lg:px-20 overflow-hidden"
+      className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col justify-center border-t border-white/10 px-5 py-20 sm:px-6 md:px-14 md:py-28 lg:px-20 overflow-hidden"
     >
       {/* Background ambient radial glow */}
       <div className="pointer-events-none absolute top-1/2 right-10 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.06)_0%,transparent_70%)] blur-3xl" />
@@ -783,14 +792,13 @@ function ContactSection() {
             Whether you&apos;re launching a new brand, producing cinematic content, or building a modern digital presence, we&apos;d love to hear your vision. Reach out and let&apos;s create something exceptional together.
           </p>
         </motion.div>
-
         {/* RIGHT COLUMN - GLASSMORPHISM CONTACT CARD */}
         <motion.div variants={contactItemVariants} className="lg:col-span-6">
           <div className="relative w-full">
             {/* Soft backdrop glow */}
             <div className="pointer-events-none absolute -inset-1 rounded-[28px] bg-gradient-to-b from-[#FF7A00]/20 via-[#FF7A00]/5 to-transparent blur-xl opacity-60" />
 
-            <div className="relative rounded-[24px] border border-[#FF7A00]/25 bg-[#0b0e17]/80 p-6 sm:p-8 md:p-10 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.7),0_0_35px_rgba(255,122,0,0.08)]">
+            <div className="relative rounded-[24px] border border-[#FF7A00]/25 bg-[#0b0e17]/65 p-5 sm:p-8 md:p-10 shadow-[0_20px_60px_rgba(0,0,0,0.7),0_0_35px_rgba(255,122,0,0.08)] md:backdrop-blur-2xl">
               {/* Subtle top border gradient */}
               <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-[#FF7A00]/40 to-transparent" />
 
@@ -865,6 +873,7 @@ function ContactSection() {
 
 export function Sections() {
   const { openModal } = useProjectInquiryModal();
+  const monthlyPackages = useMonthlyPackages();
   const containerRef = useRef<HTMLDivElement>(null);
   const servicesViewportRef = useRef<HTMLDivElement>(null);
   const servicesTrackRef = useRef<HTMLDivElement>(null);
@@ -991,12 +1000,14 @@ export function Sections() {
 
   return (
     <div ref={containerRef} className="relative bg-background text-text selection:bg-[#FF7A00]/30">
+      <AmbientLightBackground />
+      <div className="relative z-10">
       {/* ────────────────────────────────────────────────────────────
           01 — SERVICES (4 PREMIUM SERVICE CARDS)
           ──────────────────────────────────────────────────────────── */}
       <section
         id="services"
-        className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col justify-center border-t border-white/10 px-6 py-28 md:px-14 lg:px-20"
+      className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col justify-center border-t border-white/10 px-5 py-20 sm:px-6 md:px-14 md:py-28 lg:px-20"
       >
         {/* Ambient gold background glow */}
         <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-[radial-gradient(circle,rgba(201,138,61,0.04)_0%,transparent_70%)] blur-3xl" />
@@ -1042,7 +1053,7 @@ export function Sections() {
           }}
           tabIndex={0}
           aria-label="Swipe horizontally to view all services"
-          className="-mx-6 mt-16 touch-pan-y overflow-hidden px-0 pb-5 md:mx-0 md:overflow-visible md:p-0"
+          className="-mx-5 mt-12 touch-pan-y overflow-hidden px-0 pb-5 sm:-mx-6 sm:mt-16 md:mx-0 md:overflow-visible md:p-0"
         >
           <motion.div
             ref={servicesTrackRef}
@@ -1056,7 +1067,7 @@ export function Sections() {
                 key={service.number}
                 variants={serviceCardVariants}
                 data-service-card={index}
-                className="group relative flex h-[27rem] w-[78vw] max-w-[24rem] shrink-0 flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-white/[0.02] p-8 transition-[border-color,background-color,box-shadow] duration-300 md:h-auto md:min-h-[25rem] md:w-auto md:max-w-none md:p-10 md:backdrop-blur-xl md:hover:-translate-y-2 md:hover:border-[#C98A3D]/40 md:hover:bg-white/[0.04] md:hover:shadow-[0_20px_50px_rgba(201,138,61,0.12),0_0_20px_rgba(201,138,61,0.06)]"
+                className="group relative flex h-[27rem] w-[82vw] max-w-[24rem] shrink-0 flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-[#080a10]/45 p-6 transition-[border-color,background-color,box-shadow] duration-300 sm:w-[78vw] sm:p-8 md:h-auto md:min-h-[25rem] md:w-auto md:max-w-none md:p-10 md:backdrop-blur-xl md:hover:-translate-y-2 md:hover:border-[#C98A3D]/40 md:hover:bg-white/[0.04] md:hover:shadow-[0_20px_50px_rgba(201,138,61,0.12),0_0_20px_rgba(201,138,61,0.06)]"
               >
                 <div data-service-elastic className="relative z-10 flex h-full flex-col justify-between will-change-transform">
                 {/* Top Row: Icon + Number */}
@@ -1103,9 +1114,10 @@ export function Sections() {
           ──────────────────────────────────────────────────────────── */}
       <section
         id="plans"
-        className="relative mx-auto w-full max-w-[1600px] overflow-hidden border-t border-white/10 px-6 py-28 md:px-14 md:py-32 lg:px-20"
+        className="relative mx-auto w-full max-w-[1600px] overflow-hidden border-t border-white/10 px-5 py-20 sm:px-6 md:px-14 md:py-32 lg:px-20"
       >
         <div className="pointer-events-none absolute left-1/2 top-1/3 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.07)_0%,transparent_70%)] blur-3xl" />
+        <div className="relative flex flex-col gap-7 md:flex-row md:items-end md:justify-between">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -1126,6 +1138,16 @@ export function Sections() {
             Choose the monthly social media plan that fits your brand, with content, production and page management in one place.
           </p>
         </motion.div>
+        {monthlyPackages.length > 3 && (
+          <Link
+            href="/plans"
+            className="group inline-flex w-fit shrink-0 items-center gap-2 rounded-full border border-white/20 bg-[#0b0d13]/45 px-5 py-3 font-poppins text-xs font-semibold text-white/85 transition hover:border-[#FF7A00]/50 hover:bg-[#FF7A00]/10 hover:text-[#FFB15C] md:backdrop-blur-xl"
+          >
+            Explore More Plans
+            <ArrowUpRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </Link>
+        )}
+        </div>
 
         <motion.div
           variants={containerVariants}
@@ -1135,18 +1157,18 @@ export function Sections() {
           onScroll={(event) => updateSwipeCardEffects(event.currentTarget)}
           tabIndex={0}
           aria-label="Swipe horizontally to compare monthly plans"
-          className="relative -mx-6 mt-14 flex snap-x snap-proximity items-stretch gap-4 overflow-x-auto px-6 pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-2 md:gap-5 md:overflow-visible md:p-0 xl:grid-cols-3 xl:gap-7"
+          className="relative -mx-6 mt-10 flex snap-x snap-proximity items-stretch gap-4 overflow-x-auto px-6 pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:mt-14 md:grid md:grid-cols-2 md:gap-5 md:overflow-visible md:p-0 xl:grid-cols-3 xl:gap-7"
         >
-          {MONTHLY_PACKAGES.map((pkg) => {
-            const featured = pkg.id === "premium-growth";
+          {monthlyPackages.filter((pkg) => pkg.isFeatured).slice(0, 3).map((pkg) => {
+            const featured = pkg.isBestValue;
             return (
               <motion.article
                 key={pkg.id}
                 variants={cardVariants}
                 data-swipe-card
-                className={`group relative flex h-full w-[78vw] max-w-[24rem] shrink-0 snap-center flex-col overflow-hidden rounded-3xl border p-7 backdrop-blur-xl transition-[border-color,background-color,box-shadow] duration-300 hover:-translate-y-2 md:w-auto md:max-w-none md:p-8 ${
+                className={`group relative flex h-full w-[82vw] max-w-[24rem] shrink-0 snap-center flex-col overflow-hidden rounded-3xl border p-5 transition-[border-color,background-color,box-shadow] duration-300 md:w-auto md:max-w-none md:p-8 md:backdrop-blur-xl ${
                   featured
-                    ? "border-[#FF7A00]/50 bg-gradient-to-b from-[#FF7A00]/[0.11] via-[#0b0b0d]/95 to-[#0b0b0d]/95 shadow-[0_20px_60px_rgba(255,122,0,0.09)]"
+                    ? "border-[#FF7A00]/50 bg-gradient-to-b from-[#FF7A00]/[0.12] via-[#0b0b0d]/80 to-[#0b0b0d]/85 shadow-[0_20px_60px_rgba(255,122,0,0.09)]"
                     : "border-white/10 bg-white/[0.025] hover:border-white/25 hover:bg-white/[0.04]"
                 }`}
               >
@@ -1169,8 +1191,19 @@ export function Sections() {
                 </div>
 
                 <div className="relative mt-6 border-b border-white/10 pb-6">
-                  <span className="font-geist text-4xl font-semibold tracking-tight text-white md:text-5xl">{pkg.price}</span>
-                  <span className="ml-2 font-inter text-sm text-white/45">/ month</span>
+                  {pkg.offerPriceInr ? (
+                    <>
+                      <span className="mr-3 font-geist text-lg text-white/40 line-through">{pkg.price}</span>
+                      <span className="font-geist text-4xl font-semibold tracking-tight text-white md:text-5xl">{formatMonthlyPrice(pkg.offerPriceInr)}</span>
+                      <span className="ml-2 font-inter text-sm text-white/45">/ month</span>
+                      {pkg.offerLabel && <span className="mt-3 block w-fit rounded-full border border-emerald-300/25 bg-emerald-300/[0.08] px-3 py-1 font-poppins text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-200">{pkg.offerLabel}</span>}
+                    </>
+                  ) : (
+                    <>
+                      <span className="font-geist text-4xl font-semibold tracking-tight text-white md:text-5xl">{pkg.price}</span>
+                      <span className="ml-2 font-inter text-sm text-white/45">/ month</span>
+                    </>
+                  )}
                 </div>
 
                 <div className="relative flex-1 py-6">
@@ -1213,7 +1246,7 @@ export function Sections() {
           ──────────────────────────────────────────────────────────── */}
       <section
         id="about"
-        className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col justify-center border-t border-white/10 px-6 py-28 md:px-14 lg:px-20"
+        className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col justify-center border-t border-white/10 px-5 py-20 sm:px-6 md:px-14 md:py-28 lg:px-20"
       >
         {/* Ambient orange background glow */}
         <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[900px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.04)_0%,transparent_70%)] blur-3xl" />
@@ -1248,7 +1281,7 @@ export function Sections() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: "-80px" }}
-          className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-8"
+        className="mt-10 grid grid-cols-1 gap-6 sm:mt-12 md:grid-cols-2 md:gap-8 lg:grid-cols-3"
         >
           {TEAM_MEMBERS.map((member) => (
             <TeamCard key={member.name} member={member} />
@@ -1266,7 +1299,7 @@ export function Sections() {
           ──────────────────────────────────────────────────────────── */}
       <ContactSection />
 
-      <footer className="relative border-t border-white/10 bg-[#06080e] px-6 py-16 md:px-14 lg:px-20 overflow-hidden">
+      <footer className="relative border-t border-white/10 bg-[#06080e]/55 px-5 py-12 md:px-14 md:py-16 lg:px-20 overflow-hidden">
         {/* Subtle orange accent glow at bottom right */}
         <div className="pointer-events-none absolute bottom-0 right-0 h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.03)_0%,transparent_70%)] blur-3xl" />
         
@@ -1280,9 +1313,11 @@ export function Sections() {
                 className="group flex items-center gap-3.5 py-1 text-text transition-opacity duration-300 hover:opacity-90 w-fit"
                 aria-label="A2 Production"
               >
-                <img
+                <Image
                   src="/images/a2-symbol-only.png"
-                  alt="A2 Logo"
+                  alt=""
+                  width={60}
+                  height={45}
                   className="h-8 md:h-[38px] w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                 />
                 <span className="font-geist text-xs md:text-[13px] font-medium tracking-[0.38em] uppercase bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent transition-all duration-300 group-hover:tracking-[0.42em]">
@@ -1403,6 +1438,7 @@ export function Sections() {
           </div>
         </div>
       </footer>
+      </div>
     </div>
   );
 }

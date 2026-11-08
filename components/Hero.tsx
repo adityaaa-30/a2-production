@@ -198,6 +198,12 @@ function MobileHero({ openModal }: { openModal: () => void }) {
     const video = videoRef.current;
     if (!video) return;
 
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      video.pause();
+      setVideoReady(false);
+      return;
+    }
+
     const playPromise = video.play();
     if (playPromise !== undefined) {
       playPromise
@@ -213,10 +219,22 @@ function MobileHero({ openModal }: { openModal: () => void }) {
     const video = videoRef.current;
     if (!video) return;
 
+    const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const handleMotionPreferenceChange = () => {
+      if (motionPreference.matches) {
+        video.pause();
+        setVideoReady(false);
+      } else {
+        attemptPlay();
+      }
+    };
+    motionPreference.addEventListener("change", handleMotionPreferenceChange);
+
     // Try playing on multiple lifecycle events for maximum compatibility
-    if (video.readyState >= 3) {
+    if (video.readyState >= 1) {
       attemptPlay();
     } else {
+      video.addEventListener("loadedmetadata", attemptPlay, { once: true });
       video.addEventListener("canplay", attemptPlay, { once: true });
       video.addEventListener("loadeddata", attemptPlay, { once: true });
     }
@@ -230,9 +248,11 @@ function MobileHero({ openModal }: { openModal: () => void }) {
     document.addEventListener("touchstart", touchHandler, { once: true, passive: true });
 
     return () => {
+      video.removeEventListener("loadedmetadata", attemptPlay);
       video.removeEventListener("canplay", attemptPlay);
       video.removeEventListener("loadeddata", attemptPlay);
       document.removeEventListener("touchstart", touchHandler);
+      motionPreference.removeEventListener("change", handleMotionPreferenceChange);
     };
   }, [attemptPlay]);
 
@@ -259,19 +279,20 @@ function MobileHero({ openModal }: { openModal: () => void }) {
         style={{ opacity: videoReady ? 1 : 0, transition: "opacity 0.8s ease" }}
         muted
         playsInline
-        autoPlay
         loop
-        preload="auto"
+        preload="metadata"
         poster="/images/hero-poster.jpg"
+        data-hero-background-video
         aria-hidden
       >
+        <source src="/videos/gargantua-scrub.webm" type='video/webm; codecs="vp9"' />
         <source src="/videos/gargantua-scrub.mp4" type="video/mp4" />
-        <source src="/videos/gargantua-scrub.webm" type="video/webm" />
       </video>
 
       {/* Static poster fallback (visible when video hasn't loaded) */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-700"
+        data-hero-video-poster
         style={{
           backgroundImage: "url('/images/hero-poster.jpg')",
           opacity: videoReady ? 0 : 1,
@@ -372,6 +393,7 @@ function MobileHero({ openModal }: { openModal: () => void }) {
 function DesktopHero({ openModal }: { openModal: () => void }) {
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoReady, setVideoReady] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const introRef = useRef<HTMLDivElement>(null);
   const scrollCueRef = useRef<HTMLDivElement>(null);
@@ -395,6 +417,8 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
 
       // --- Reduced motion fallback ---
       if (prefersReducedMotion) {
+        video.pause();
+        video.currentTime = 0;
         gsap.set(heading, { opacity: 1 });
         gsap.set(split.chars ?? [], {
           opacity: 1,
@@ -588,15 +612,27 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
         className="absolute inset-0 h-full w-full object-cover transform-gpu filter-[brightness(0.88)_contrast(1.05)] translate-z-0"
         muted
         playsInline
-        autoPlay
         loop
-        preload="auto"
+        preload="metadata"
         poster="/images/hero-poster.jpg"
+        data-hero-background-video
+        onLoadedData={() => setVideoReady(true)}
+        onError={() => setVideoReady(false)}
         aria-hidden
       >
+        <source src="/videos/gargantua-scrub.webm" type='video/webm; codecs="vp9"' />
         <source src="/videos/gargantua-scrub.mp4" type="video/mp4" />
-        <source src="/videos/gargantua-scrub.webm" type="video/webm" />
       </video>
+
+      <div
+        className="pointer-events-none absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-700"
+        data-hero-video-poster
+        style={{
+          backgroundImage: "url('/images/hero-poster.jpg')",
+          opacity: videoReady ? 0 : 1,
+        }}
+        aria-hidden
+      />
 
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgba(5,7,13,0.5)_100%)]" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[50%] bg-gradient-to-t from-[#05070d] via-[#05070d]/60 to-transparent" />
@@ -911,7 +947,7 @@ export function Hero() {
         ref={assignAudioElement}
         src={HERO_AUDIO_SRC}
         loop
-        preload="auto"
+        preload="none"
         aria-hidden
         className="hidden"
       />
