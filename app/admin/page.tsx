@@ -47,6 +47,37 @@ interface ProjectRequest {
 const STATUS_OPTIONS = ["New", "In Progress", "Completed", "Archived"];
 const ADMIN_EXIT_GUARD_KEY = "__a2AdminExitGuard";
 
+function getAdminSignInErrorMessage(error: unknown) {
+  const authError =
+    error && typeof error === "object"
+      ? (error as { code?: unknown; status?: unknown; name?: unknown })
+      : {};
+  const code = typeof authError.code === "string" ? authError.code : "";
+  const status = typeof authError.status === "number" ? authError.status : undefined;
+  const name = typeof authError.name === "string" ? authError.name : "";
+
+  if (code === "invalid_credentials") {
+    return "Email or password was rejected by the Supabase project configured for this website. Check that this account belongs to that project.";
+  }
+  if (code === "email_not_confirmed") {
+    return "Confirm this account's email in Supabase before signing in.";
+  }
+  if (code === "email_provider_disabled" || code === "provider_disabled") {
+    return "Password sign-in is disabled in this Supabase project's Auth settings.";
+  }
+  if (code === "invalid_api_key" || status === 401) {
+    return "The website could not authenticate with Supabase. Check the public Supabase URL and anon key configuration.";
+  }
+  if (status === 429 || code.includes("rate_limit")) {
+    return "Too many sign-in attempts. Wait a few minutes, then try again.";
+  }
+  if (name === "AuthRetryableFetchError" || error instanceof TypeError) {
+    return "Could not reach Supabase Auth. Check your connection and try again.";
+  }
+
+  return "Sign-in could not be completed. Check Supabase Auth configuration and try again.";
+}
+
 function getStatusBadgeClass(status: string) {
   switch (status) {
     case "New":
@@ -418,13 +449,15 @@ export default function AdminDashboardPage() {
         fetchRequests();
       } else {
         await supabase.auth.signOut();
-        setLoginError("This account does not have administrator access.");
+        setLoginError(
+          "This account is not authorized for the admin panel. In the configured Supabase project, an administrator must set app_metadata.role to admin for this account, then you can sign in again."
+        );
       }
     } catch (err: unknown) {
       if (process.env.NODE_ENV === "development") {
         console.error("Login error:", err);
       }
-      setLoginError("Invalid email or password.");
+      setLoginError(getAdminSignInErrorMessage(err));
     } finally {
       setLoginLoading(false);
     }

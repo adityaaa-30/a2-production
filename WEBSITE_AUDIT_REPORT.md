@@ -78,6 +78,12 @@ Before production inquiry writes and admin pricing management can be considered 
 
 The reviewed policy intent allows anonymous reads of `monthly_packages` for public plan display while restricting project-request and package-management operations to the configured admin/service role. This was checked in repository SQL only, not by querying Supabase.
 
+### Admin password sign-in troubleshooting
+
+The login form calls Supabase `signInWithPassword`, then accepts the session only when the authenticated account has the trusted `app_metadata.role === "admin"` claim. Both admin accounts must have that claim in the **same Supabase project configured by this site's public URL**. The local environment file has a plausibly formatted public URL and anon key, but this check does not prove that they point to the project where either account was created. `SUPABASE_SERVICE_ROLE_KEY` is absent locally; that key is not required for password sign-in. `ADMIN_EMAIL` is present in local configuration/example but is not referenced by application code and does not grant admin access.
+
+The login UI now distinguishes common Auth failures (rejected credentials/project mismatch, unconfirmed email, disabled password provider, invalid public key, rate limiting, and network errors) instead of labelling every failure “Invalid email or password.” If Supabase accepts the password but the account lacks the admin claim, the page explains the required `app_metadata.role=admin` assignment. To enable both existing administrator accounts, update App Metadata for each intended user in Supabase Dashboard → Authentication → Users in the correct project, then sign in again to obtain a fresh token. This audit did not access those accounts or modify Supabase user metadata.
+
 ## Performance findings
 
 - `.next/static/chunks`: 19 files, 1,696,931 bytes total (about 1.62 MiB); largest chunk measured about 367 KB. This is uncompressed on-disk output, not transferred/gzip size.
