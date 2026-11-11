@@ -114,21 +114,15 @@ export function Navbar() {
 
   useEffect(() => {
     let frame = 0;
-    let triggerPoint: number;
-
-    const measureTriggerPoint = () => {
-      const servicesSection = document.getElementById("services");
-      if (servicesSection) {
-        triggerPoint =
-          servicesSection.getBoundingClientRect().top + window.scrollY - 100;
-      } else {
-        triggerPoint = window.innerHeight * 3.8;
-      }
-    };
-
     const updateScrolledState = () => {
       frame = 0;
-      const nextScrolled = window.scrollY >= triggerPoint;
+      const heroSection = document.getElementById("hero-section");
+      const servicesSection = document.getElementById("services");
+      const nextScrolled = heroSection
+        ? heroSection.getBoundingClientRect().bottom <= 0
+        : servicesSection
+          ? servicesSection.getBoundingClientRect().top <= 0
+          : window.scrollY >= window.innerHeight * 3.8;
       setScrolled((current) => current === nextScrolled ? current : nextScrolled);
     };
 
@@ -138,11 +132,9 @@ export function Navbar() {
     };
 
     const onResize = () => {
-      measureTriggerPoint();
       onScroll();
     };
 
-    measureTriggerPoint();
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onResize, { passive: true });
@@ -205,13 +197,13 @@ export function Navbar() {
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-50 transition-colors duration-500 ${
+        className={`fixed inset-x-0 top-0 z-50 transition-all duration-500 ${
           scrolled
-            ? "bg-gradient-to-b from-black/20 via-black/5 to-transparent"
-            : "bg-transparent"
+            ? "bg-black/35 shadow-[0_8px_24px_rgba(0,0,0,0.12)] backdrop-blur-md"
+            : "bg-transparent shadow-none backdrop-blur-0"
         }`}
       >
-        <nav className="mx-auto flex h-20 max-w-[1600px] items-center justify-between px-6 md:px-14">
+        <nav className="mx-auto flex h-[70px] max-w-[1600px] items-center justify-between px-6 md:px-14">
           <a
             href={isHomeRoute ? "#" : "/"}
             onClick={(event) => guardAdminNavigation(event, isHomeRoute ? "#" : "/")}

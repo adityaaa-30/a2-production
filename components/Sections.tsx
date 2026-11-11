@@ -441,7 +441,7 @@ function ProcessSection() {
     <section
       ref={sectionRef}
       id="process"
-      className="relative mx-auto w-full max-w-[1600px] border-t border-white/10 px-5 py-20 sm:px-6 md:px-14 md:py-32 lg:px-20 overflow-hidden"
+      className="relative mx-auto w-full max-w-[1600px] border-t border-white/10 px-5 py-12 sm:px-6 md:px-14 md:py-32 lg:px-20 overflow-hidden"
     >
       {/* Ambient orange gradient glow */}
       <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[700px] w-[1000px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.04)_0%,transparent_65%)] blur-3xl" />
@@ -455,7 +455,7 @@ function ProcessSection() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: "-80px" }}
         transition={{ duration: 0.9, ease: [0.215, 0.61, 0.355, 1] }}
-        className="mb-12 flex flex-col gap-6 md:mb-20 md:max-w-3xl lg:mb-28"
+        className="mb-8 flex flex-col gap-5 md:mb-20 md:gap-6 md:max-w-3xl lg:mb-28"
       >
         <div className="inline-flex items-center gap-2 rounded-full border border-[#FF7A00]/25 bg-[#FF7A00]/[0.05] px-4 py-1.5 backdrop-blur-md w-fit">
           <span className="h-2 w-2 rounded-full bg-[#FF7A00] animate-pulse" />
@@ -557,7 +557,7 @@ function ProcessSection() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.8, delay: 0.3, ease: [0.215, 0.61, 0.355, 1] }}
-        className="mt-24 flex flex-col items-center text-center gap-8"
+        className="mt-12 flex flex-col items-center text-center gap-6 md:mt-24 md:gap-8"
       >
         <p className="font-geist text-[clamp(1.25rem,3vw,2rem)] font-medium tracking-tight text-white/90">
           Ready to bring your vision to life?
@@ -763,7 +763,7 @@ function ContactSection() {
   return (
     <section
       id="contact"
-      className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col justify-center border-t border-white/10 px-5 py-20 sm:px-6 md:px-14 md:py-28 lg:px-20 overflow-hidden"
+      className="relative mx-auto flex w-full max-w-[1600px] flex-col border-t border-white/10 px-5 py-12 sm:px-6 md:min-h-screen md:justify-center md:px-14 md:py-28 lg:px-20 overflow-hidden"
     >
       {/* Background ambient radial glow */}
       <div className="pointer-events-none absolute top-1/2 right-10 -translate-y-1/2 h-[600px] w-[600px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.06)_0%,transparent_70%)] blur-3xl" />
@@ -773,7 +773,7 @@ function ContactSection() {
         initial="hidden"
         whileInView="show"
         viewport={{ once: true, margin: "-80px" }}
-        className="grid grid-cols-1 gap-12 lg:grid-cols-12 lg:gap-16 items-center"
+        className="grid grid-cols-1 gap-8 md:gap-12 lg:grid-cols-12 lg:gap-16 items-center"
       >
         {/* LEFT COLUMN */}
         <motion.div variants={contactItemVariants} className="flex flex-col gap-6 lg:col-span-6">
@@ -1007,10 +1007,11 @@ export function Sections() {
           ──────────────────────────────────────────────────────────── */}
       <section
         id="services"
-      className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col justify-center border-t border-white/10 px-5 py-20 sm:px-6 md:px-14 md:py-28 lg:px-20"
+      className="relative mx-auto flex w-full max-w-[1600px] flex-col px-5 py-12 sm:px-6 md:min-h-screen md:justify-center md:px-14 md:py-28 lg:px-20"
       >
         {/* Ambient gold background glow */}
         <div className="pointer-events-none absolute top-1/3 left-1/2 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-[radial-gradient(circle,rgba(201,138,61,0.04)_0%,transparent_70%)] blur-3xl" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-36 bg-gradient-to-b from-[#05070d] via-[#05070d]/75 to-transparent" />
 
         {/* Section Header */}
         <motion.div
@@ -1018,7 +1019,7 @@ export function Sections() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true, margin: "-60px" }}
           transition={{ duration: 0.8, ease: [0.215, 0.61, 0.355, 1] }}
-          className="flex flex-col gap-6 md:max-w-3xl"
+          className="relative z-10 flex flex-col gap-6 md:max-w-3xl"
         >
           <div className="inline-flex items-center gap-2 rounded-full border border-[#C98A3D]/20 bg-[#C98A3D]/[0.04] px-4 py-1.5 backdrop-blur-md w-fit">
             <span className="h-2 w-2 rounded-full bg-[#C98A3D] animate-pulse" />
@@ -1053,7 +1054,7 @@ export function Sections() {
           }}
           tabIndex={0}
           aria-label="Swipe horizontally to view all services"
-          className="-mx-5 mt-12 touch-pan-y overflow-hidden px-0 pb-5 sm:-mx-6 sm:mt-16 md:mx-0 md:overflow-visible md:p-0"
+          className="relative z-10 -mx-5 mt-8 touch-pan-y overflow-hidden px-0 pb-4 sm:-mx-6 sm:mt-16 md:mx-0 md:overflow-visible md:p-0"
         >
           <motion.div
             ref={servicesTrackRef}
@@ -1114,7 +1115,7 @@ export function Sections() {
           ──────────────────────────────────────────────────────────── */}
       <section
         id="plans"
-        className="relative mx-auto w-full max-w-[1600px] overflow-hidden border-t border-white/10 px-5 py-20 sm:px-6 md:px-14 md:py-32 lg:px-20"
+        className="relative mx-auto w-full max-w-[1600px] overflow-hidden border-t border-white/10 px-5 py-12 sm:px-6 md:px-14 md:py-32 lg:px-20"
       >
         <div className="pointer-events-none absolute left-1/2 top-1/3 h-[600px] w-[900px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.07)_0%,transparent_70%)] blur-3xl" />
         <div className="relative flex flex-col gap-7 md:flex-row md:items-end md:justify-between">
@@ -1246,7 +1247,7 @@ export function Sections() {
           ──────────────────────────────────────────────────────────── */}
       <section
         id="about"
-        className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col justify-center border-t border-white/10 px-5 py-20 sm:px-6 md:px-14 md:py-28 lg:px-20"
+        className="relative mx-auto flex w-full max-w-[1600px] flex-col border-t border-white/10 px-5 py-12 sm:px-6 md:min-h-screen md:justify-center md:px-14 md:py-28 lg:px-20"
       >
         {/* Ambient orange background glow */}
         <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[600px] w-[900px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.04)_0%,transparent_70%)] blur-3xl" />
@@ -1281,7 +1282,7 @@ export function Sections() {
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, margin: "-80px" }}
-        className="mt-10 grid grid-cols-1 gap-6 sm:mt-12 md:grid-cols-2 md:gap-8 lg:grid-cols-3"
+        className="mt-8 grid grid-cols-1 gap-5 sm:mt-12 md:grid-cols-2 md:gap-8 lg:grid-cols-3"
         >
           {TEAM_MEMBERS.map((member) => (
             <TeamCard key={member.name} member={member} />
@@ -1299,7 +1300,7 @@ export function Sections() {
           ──────────────────────────────────────────────────────────── */}
       <ContactSection />
 
-      <footer className="relative border-t border-white/10 bg-[#06080e]/55 px-5 py-12 md:px-14 md:py-16 lg:px-20 overflow-hidden">
+      <footer className="relative border-t border-white/10 bg-[#06080e]/55 px-5 py-10 md:px-14 md:py-16 lg:px-20 overflow-hidden">
         {/* Subtle orange accent glow at bottom right */}
         <div className="pointer-events-none absolute bottom-0 right-0 h-[250px] w-[250px] rounded-full bg-[radial-gradient(circle,rgba(255,122,0,0.03)_0%,transparent_70%)] blur-3xl" />
         

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, CircleDollarSign, Loader2, LogOut, Plus, Save, ShieldCheck, Trash2, X } from "lucide-react";
+import { AlertCircle, ArrowDown, ArrowLeft, ArrowUp, CheckCircle2, CircleDollarSign, Loader2, LogOut, Plus, Save, Search, ShieldCheck, Trash2, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { MONTHLY_PACKAGES, type MonthlyPackage } from "@/lib/monthly-packages";
 import { AmbientLightBackground } from "@/components/AmbientLightBackground";
@@ -30,6 +30,7 @@ export default function PricingAdminPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [packages, setPackages] = useState<MonthlyPackage[]>(MONTHLY_PACKAGES);
+  const [planSearch, setPlanSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<MonthlyPackage | null>(null);
   const [deletingPackageId, setDeletingPackageId] = useState<string | null>(null);
   const [loadingPackages, setLoadingPackages] = useState(true);
@@ -342,6 +343,25 @@ export default function PricingAdminPage() {
     }
   };
 
+  const normalizedPlanSearch = planSearch.trim().toLocaleLowerCase();
+  const visiblePackages = packages
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => {
+      if (!normalizedPlanSearch) return true;
+      const searchableText = [
+        item.name,
+        item.price,
+        item.priceInr.toString(),
+        item.priceInr.toLocaleString("en-IN"),
+        item.offerPriceInr?.toString() ?? "",
+        item.offerPriceInr?.toLocaleString("en-IN") ?? "",
+        item.description,
+        item.offerLabel,
+        ...item.features,
+      ].join(" ").toLocaleLowerCase();
+      return searchableText.includes(normalizedPlanSearch);
+    });
+
   if (checkingAuth || !isAdmin) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#050507] text-white">
@@ -404,14 +424,40 @@ export default function PricingAdminPage() {
                 {packages.filter((item) => item.isFeatured).length} / {Math.min(3, packages.length)} selected. Changes apply after Save pricing.
               </p>
             </div>
+            {packages.length > 0 && (
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <label className="relative block w-full sm:max-w-sm">
+                  <Search aria-hidden="true" className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
+                  <input
+                    type="search"
+                    value={planSearch}
+                    onChange={(event) => setPlanSearch(event.target.value)}
+                    placeholder="Search by plan name, price or details"
+                    aria-label="Search by plan name, price or details"
+                    className={`${fieldsClass} pl-11`}
+                  />
+                </label>
+                <p className="font-inter text-xs text-white/40" aria-live="polite">
+                  Showing {visiblePackages.length} of {packages.length} plans
+                </p>
+              </div>
+            )}
             {packages.length === 0 && (
               <div className="rounded-3xl border border-dashed border-white/15 bg-[#080a10]/45 px-6 py-12 text-center backdrop-blur-xl">
                 <p className="font-geist text-lg font-semibold text-white">No plans yet</p>
                 <p className="mt-2 font-inter text-sm text-white/45">Add a plan to publish it in the website pricing section.</p>
               </div>
             )}
-            {packages.map((item, index) => (
-              <section key={item.id} className="rounded-3xl border border-white/15 bg-[#080a10]/70 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.24)] sm:p-7 [content-visibility:auto] [contain-intrinsic-size:auto_560px]">
+            {packages.length > 0 && visiblePackages.length === 0 && (
+              <div className="rounded-2xl border border-dashed border-white/15 bg-white/[0.02] px-5 py-8 text-center">
+                <p className="font-inter text-sm text-white/65">No plans match “{planSearch.trim()}”.</p>
+                <button type="button" onClick={() => setPlanSearch("")} className="mt-3 font-inter text-xs text-[#FFB15C] transition hover:text-white">
+                  Clear search
+                </button>
+              </div>
+            )}
+            {visiblePackages.map(({ item, index }) => (
+              <section key={item.id} className="rounded-3xl border border-white/15 bg-[#080a10]/70 p-5 shadow-[0_18px_60px_rgba(0,0,0,0.24)] sm:p-7">
                 <div className="mb-5 flex items-center justify-between gap-3 border-b border-white/[0.08] pb-4">
                   <div>
                     <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-[#FF7A00]">Plan 0{index + 1}</span>
