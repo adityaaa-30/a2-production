@@ -30,7 +30,6 @@ export function AmbientLightBackground() {
     const background = backgroundRef.current;
     if (!background) return;
 
-    let idleTimer = 0;
     let wanderTimer = 0;
     let lastColorChange = 0;
     const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -73,22 +72,16 @@ export function AmbientLightBackground() {
         lastColorChange = now;
       }
 
-      window.clearTimeout(idleTimer);
-      idleTimer = window.setTimeout(() => {
-        wanderToRandomPoint();
-      }, 650);
     };
 
     const onMotionPreferenceChange = (event: MediaQueryListEvent) => {
       prefersReducedMotion = event.matches;
-      window.clearTimeout(idleTimer);
       window.clearTimeout(wanderTimer);
       if (prefersReducedMotion) setStaticLight();
       else wanderToRandomPoint();
     };
 
     const onWindowBlur = () => {
-      window.clearTimeout(idleTimer);
       window.clearTimeout(wanderTimer);
       wanderToRandomPoint();
     };
@@ -100,7 +93,6 @@ export function AmbientLightBackground() {
     motionPreference.addEventListener("change", onMotionPreferenceChange);
 
     return () => {
-      window.clearTimeout(idleTimer);
       window.clearTimeout(wanderTimer);
       window.removeEventListener("pointermove", onPointerMove);
       window.removeEventListener("blur", onWindowBlur);

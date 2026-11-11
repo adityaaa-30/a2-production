@@ -36,7 +36,7 @@ const MOBILE_SCENES: MobileScene[] = [
     lines: [
       { text: "EVERY IDEA" },
       { text: "BEGINS" },
-      { text: "IN SILENCE.", style: "text-white/40" },
+      { text: "IN SILENCE.", style: "gradient-text" },
     ],
   },
   {
@@ -50,7 +50,7 @@ const MOBILE_SCENES: MobileScene[] = [
   },
   {
     id: 3,
-    lines: [{ text: "ANTI" }, { text: "GRAVITY" }],
+    lines: [{ text: "ANTI" }, { text: "GRAVITY", style: "gradient-text" }],
     subtitle: "\u201CWhen gravity ends, creativity begins.\u201D",
   },
   {
@@ -58,7 +58,7 @@ const MOBILE_SCENES: MobileScene[] = [
     lines: [
       { text: "EVERY PIXEL." },
       { text: "EVERY MOTION." },
-      { text: "EVERY DETAIL." },
+      { text: "EVERY DETAIL.", style: "gradient-text" },
     ],
     subtitle: "CRAFTED WITH INTENTION.",
   },
@@ -67,7 +67,7 @@ const MOBILE_SCENES: MobileScene[] = [
     lines: [
       { text: "A2 PRODUCTION", style: "gradient-text" },
       { text: "BEYOND VISION.", style: "text-white/50" },
-      { text: "BEYOND LIMITS.", style: "text-white/50" },
+      { text: "BEYOND LIMITS.", style: "gradient-text" },
     ],
     showCta: true,
   },
@@ -77,6 +77,18 @@ const SCENE_DURATION = 4000; // ms per scene
 const HERO_AUDIO_SRC = "/audio/hero-scroll-music.mp3";
 const HERO_AUDIO_MAX_VOLUME = 0.55;
 const HERO_AUDIO_FADE_SECONDS = 0.9;
+const HERO_VIDEO_FPS = 30;
+
+function prefersReducedData() {
+  const saveDataConnection = (navigator as Navigator & {
+    connection?: { saveData?: boolean };
+  }).connection;
+
+  return (
+    window.matchMedia("(prefers-reduced-data: reduce)").matches ||
+    saveDataConnection?.saveData === true
+  );
+}
 
 type HeroAudioController = {
   audio: HTMLAudioElement;
@@ -200,6 +212,13 @@ function MobileHero({ openModal }: { openModal: () => void }) {
 
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       video.pause();
+      setVideoReady(false);
+      return;
+    }
+
+    if (prefersReducedData()) {
+      video.pause();
+      video.preload = "none";
       setVideoReady(false);
       return;
     }
@@ -336,7 +355,7 @@ function MobileHero({ openModal }: { openModal: () => void }) {
             {scene.subtitle && (
               <motion.p
                 variants={lineVariants}
-                className="max-w-xs font-inter text-sm font-light leading-relaxed text-muted"
+                className="hero-script max-w-xs text-sm leading-relaxed text-muted"
               >
                 {scene.subtitle}
               </motion.p>
@@ -393,11 +412,36 @@ function MobileHero({ openModal }: { openModal: () => void }) {
 function DesktopHero({ openModal }: { openModal: () => void }) {
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [videoPreload, setVideoPreload] = useState<"auto" | "metadata">("metadata");
   const [videoReady, setVideoReady] = useState(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const introRef = useRef<HTMLDivElement>(null);
   const scrollCueRef = useRef<HTMLDivElement>(null);
   const scenesRef = useRef<(HTMLDivElement | null)[]>([]);
+
+  useEffect(() => {
+    const reducedDataPreference = window.matchMedia("(prefers-reduced-data: reduce)");
+    const saveDataConnection = (navigator as Navigator & {
+      connection?: EventTarget & { saveData?: boolean };
+    }).connection;
+
+    const updateVideoPreload = () => {
+      setVideoPreload(
+        reducedDataPreference.matches || saveDataConnection?.saveData
+          ? "metadata"
+          : "auto"
+      );
+    };
+
+    updateVideoPreload();
+    reducedDataPreference.addEventListener("change", updateVideoPreload);
+    saveDataConnection?.addEventListener("change", updateVideoPreload);
+
+    return () => {
+      reducedDataPreference.removeEventListener("change", updateVideoPreload);
+      saveDataConnection?.removeEventListener("change", updateVideoPreload);
+    };
+  }, []);
 
   useGSAP(
     () => {
@@ -413,6 +457,21 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
       const split = new SplitType(heading, {
         types: "words,chars",
         tagName: "span",
+      });
+
+      // Keep gradients continuous across each phrase after SplitType wraps its characters.
+      (split.chars ?? []).forEach((char) => {
+        const gradientText = char.closest<HTMLElement>(".gradient-text");
+        if (!gradientText) return;
+
+        const phraseBounds = gradientText.getBoundingClientRect();
+        const charBounds = char.getBoundingClientRect();
+        char.style.backgroundImage = getComputedStyle(gradientText).backgroundImage;
+        char.style.backgroundSize = `${phraseBounds.width}px 100%`;
+        char.style.backgroundPosition = `${phraseBounds.left - charBounds.left}px 0`;
+        char.style.webkitBackgroundClip = "text";
+        char.style.backgroundClip = "text";
+        char.style.color = "transparent";
       });
 
       // --- Reduced motion fallback ---
@@ -491,26 +550,33 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
             }
 
             video.pause();
+            let canScrubVideo = !prefersReducedData();
             const targetObj = { time: 0 };
-            let lastSeekTime = -1;
+            let lastSeekFrame = -1;
 
             const updateVideoFrame = () => {
               if (
+                canScrubVideo &&
                 video &&
                 video.readyState >= 1 &&
                 !isNaN(video.duration) &&
                 video.duration > 0
               ) {
-                const targetTime = targetObj.time;
-                if (
-                  Math.abs(targetTime - lastSeekTime) > 0.015 &&
-                  !video.seeking
-                ) {
-                  lastSeekTime = targetTime;
-                  video.currentTime = targetTime;
-                }
+                if (video.seeking) return;
+
+                const maxTime = Math.max(video.duration - 0.05, 0);
+                const targetFrame = Math.round(
+                  Math.min(Math.max(targetObj.time, 0), maxTime) * HERO_VIDEO_FPS
+                );
+                if (targetFrame === lastSeekFrame) return;
+
+                lastSeekFrame = targetFrame;
+                video.currentTime = Math.min(targetFrame / HERO_VIDEO_FPS, maxTime);
               }
             };
+
+            const onSeeked = () => updateVideoFrame();
+            video.addEventListener("seeked", onSeeked);
 
             const videoDur = video.duration
               ? Math.max(video.duration - 0.05, 0)
@@ -525,7 +591,6 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
                 pin: true,
                 anticipatePin: 1,
                 invalidateOnRefresh: true,
-                onUpdate: updateVideoFrame,
               },
             });
 
@@ -563,7 +628,10 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
               tl.fromTo(scenes[5], { opacity: 0, y: 25 }, { opacity: 1, y: 0, pointerEvents: "auto", duration: 0.6, ease: "power2.out" }, 9.5);
             }
 
-            return () => { tl.kill(); };
+            return () => {
+              video.removeEventListener("seeked", onSeeked);
+              tl.kill();
+            };
           }
         );
       };
@@ -613,15 +681,15 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
         muted
         playsInline
         loop
-        preload="metadata"
+        preload={videoPreload}
         poster="/images/hero-poster.jpg"
         data-hero-background-video
         onLoadedData={() => setVideoReady(true)}
         onError={() => setVideoReady(false)}
         aria-hidden
       >
-        <source src="/videos/gargantua-scrub.webm" type='video/webm; codecs="vp9"' />
         <source src="/videos/gargantua-scrub.mp4" type="video/mp4" />
+        <source src="/videos/gargantua-scrub.webm" type='video/webm; codecs="vp9"' />
       </video>
 
       <div
@@ -658,7 +726,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
           ref={introRef}
           className="mt-8 flex flex-col gap-8 opacity-0 md:flex-row md:items-end md:justify-between"
         >
-          <p className="max-w-md text-base text-muted text-shadow-premium md:text-lg">
+          <p className="hero-script max-w-md text-base text-muted text-shadow-premium md:text-lg">
             A2 Production is a creative digital agency crafting brands,
             products, and motion for companies who refuse to blend in.
           </p>
@@ -675,7 +743,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
         <div className={headlineBase}>
           <span className={line}>EVERY IDEA</span>
           <span className={line}>BEGINS</span>
-          <span className="block overflow-hidden text-white/50 text-shadow-premium">IN SILENCE.</span>
+          <span className="block overflow-hidden"><span className="gradient-text">IN SILENCE.</span></span>
         </div>
       </div>
 
@@ -703,7 +771,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
       >
         <div className={headlineBase}>
           <span className={line}>ANTI</span>
-          <span className={line}>GRAVITY</span>
+          <span className="block overflow-hidden"><span className="gradient-text">GRAVITY</span></span>
         </div>
         <p className="mt-8 max-w-xl font-inter text-lg font-light tracking-wide text-slate-300/80 text-shadow-premium md:text-2xl">
           &ldquo;When gravity ends,{" "}
@@ -721,7 +789,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
         <div className={headlineBase}>
           <span className={line}>EVERY PIXEL.</span>
           <span className={line}>EVERY MOTION.</span>
-          <span className={line}>EVERY DETAIL.</span>
+          <span className="block overflow-hidden"><span className="gradient-text">EVERY DETAIL.</span></span>
         </div>
         <p className="mt-8 font-inter text-lg font-light tracking-[0.15em] uppercase text-white/40 text-shadow-premium md:text-2xl">
           Crafted With Intention.
@@ -739,7 +807,7 @@ function DesktopHero({ openModal }: { openModal: () => void }) {
             <span className="gradient-text">A2 PRODUCTION</span>
           </span>
           <span className="block overflow-hidden text-white/50 text-shadow-premium">BEYOND VISION.</span>
-          <span className="block overflow-hidden text-white/50 text-shadow-premium">BEYOND LIMITS.</span>
+          <span className="block overflow-hidden"><span className="gradient-text">BEYOND LIMITS.</span></span>
         </div>
         <div className="mt-10">
           <MagneticButton onClick={openModal}>Start a Project</MagneticButton>

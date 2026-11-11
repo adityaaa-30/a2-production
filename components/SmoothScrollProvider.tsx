@@ -62,8 +62,8 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
       window.cancelAnimationFrame(secondHashFrame);
     };
 
-    // Reduced-motion or Mobile users keep native fast scrolling — PC retains full Lenis smooth scroll
-    if (prefersReducedMotion || isMobile) {
+    // Keep native scrolling for reduced-motion users; otherwise use Lenis across the full page.
+    if (prefersReducedMotion) {
       scheduleHashJump();
       return cancelHashJump;
     }
@@ -72,6 +72,7 @@ export function SmoothScrollProvider({ children }: { children: ReactNode }) {
       duration: 1.1,
       easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       smoothWheel: true,
+      syncTouch: isMobile,
     });
     lenis = smoothScroller;
 

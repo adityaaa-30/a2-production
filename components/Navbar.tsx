@@ -113,23 +113,43 @@ export function Navbar() {
   };
 
   useEffect(() => {
-    const onScroll = () => {
+    let frame = 0;
+    let triggerPoint: number;
+
+    const measureTriggerPoint = () => {
       const servicesSection = document.getElementById("services");
       if (servicesSection) {
-        const triggerPoint =
+        triggerPoint =
           servicesSection.getBoundingClientRect().top + window.scrollY - 100;
-        setScrolled(window.scrollY >= triggerPoint);
       } else {
-        setScrolled(window.scrollY > window.innerHeight * 3.8);
+        triggerPoint = window.innerHeight * 3.8;
       }
     };
 
+    const updateScrolledState = () => {
+      frame = 0;
+      const nextScrolled = window.scrollY >= triggerPoint;
+      setScrolled((current) => current === nextScrolled ? current : nextScrolled);
+    };
+
+    const onScroll = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(updateScrolledState);
+    };
+
+    const onResize = () => {
+      measureTriggerPoint();
+      onScroll();
+    };
+
+    measureTriggerPoint();
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
+    window.addEventListener("resize", onResize, { passive: true });
     return () => {
+      window.cancelAnimationFrame(frame);
       window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("resize", onResize);
     };
   }, []);
 
@@ -187,8 +207,8 @@ export function Navbar() {
       <header
         className={`fixed inset-x-0 top-0 z-50 transition-colors duration-500 ${
           scrolled
-            ? "border-b border-white/10 bg-background/70 backdrop-blur-xl"
-            : "border-b border-transparent bg-transparent"
+            ? "bg-gradient-to-b from-black/20 via-black/5 to-transparent"
+            : "bg-transparent"
         }`}
       >
         <nav className="mx-auto flex h-20 max-w-[1600px] items-center justify-between px-6 md:px-14">
