@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
-import { animate, motion, useMotionValue } from "framer-motion";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { AmbientLightBackground } from "@/components/AmbientLightBackground";
@@ -877,125 +877,21 @@ export function Sections() {
   const containerRef = useRef<HTMLDivElement>(null);
   const servicesViewportRef = useRef<HTMLDivElement>(null);
   const servicesTrackRef = useRef<HTMLDivElement>(null);
-  const servicesIndexRef = useRef(0);
-  const servicesX = useMotionValue(0);
-  const servicesDragRef = useRef<{ pointerId: number; startX: number; startY: number; startOffset: number; horizontal: boolean } | null>(null);
-  const servicesMotionTimeoutRef = useRef<number | null>(null);
 
-  const getServicesOffset = (index: number) => {
+  const onServicesKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
     const viewport = servicesViewportRef.current;
     const track = servicesTrackRef.current;
     const card = track?.querySelector<HTMLElement>("[data-service-card]");
-    if (!viewport || !track || !card) return 0;
+    if (!viewport || !track || !card) return;
+    event.preventDefault();
     const styles = window.getComputedStyle(track);
     const gap = parseFloat(styles.columnGap || styles.gap) || 0;
-    return -(index * (card.getBoundingClientRect().width + gap));
-  };
-
-  const settleServicesAt = (index: number, immediate = false) => {
-    const boundedIndex = Math.max(0, Math.min(BUILD_SERVICES.length - 1, index));
-    servicesIndexRef.current = boundedIndex;
-    const target = window.innerWidth >= 768 ? 0 : getServicesOffset(boundedIndex);
-    if (immediate || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      servicesX.set(target);
-    } else {
-      animate(servicesX, target, { type: "spring", stiffness: 340, damping: 34, mass: 0.8 });
-    }
-  };
-
-  useEffect(() => {
-    const onResize = () => {
-      const target = window.innerWidth >= 768 ? 0 : getServicesOffset(servicesIndexRef.current);
-      servicesX.set(target);
-    };
-    window.addEventListener("resize", onResize);
-    onResize();
-    return () => {
-      window.removeEventListener("resize", onResize);
-      if (servicesMotionTimeoutRef.current !== null) {
-        window.clearTimeout(servicesMotionTimeoutRef.current);
-      }
-    };
-  }, [servicesX]);
-
-  const onServicesPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (window.innerWidth >= 768 || !event.isPrimary || event.button !== 0) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    servicesX.stop();
-    if (servicesMotionTimeoutRef.current !== null) {
-      window.clearTimeout(servicesMotionTimeoutRef.current);
-      servicesMotionTimeoutRef.current = null;
-    }
-    servicesTrackRef.current?.querySelectorAll<HTMLElement>("[data-service-elastic]").forEach((card) => {
-      card.style.transition = "none";
-      card.style.transform = "";
-      card.style.filter = "";
-      card.style.transition = "";
+    const direction = event.key === "ArrowRight" ? 1 : -1;
+    viewport.scrollBy({
+      left: direction * (card.getBoundingClientRect().width + gap),
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
     });
-    servicesDragRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      startOffset: servicesX.get(),
-      horizontal: false,
-    };
-  };
-
-  const onServicesPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    const drag = servicesDragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    const dx = event.clientX - drag.startX;
-    const dy = event.clientY - drag.startY;
-    if (!drag.horizontal && Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
-    if (!drag.horizontal && Math.abs(dy) > Math.abs(dx)) {
-      servicesDragRef.current = null;
-      return;
-    }
-    drag.horizontal = true;
-    event.preventDefault();
-    const atEdge = (servicesIndexRef.current === 0 && dx > 0) || (servicesIndexRef.current === BUILD_SERVICES.length - 1 && dx < 0);
-    const resistedDx = atEdge ? dx * 0.24 : dx;
-    servicesX.set(drag.startOffset + resistedDx * 0.62);
-    servicesTrackRef.current?.querySelectorAll<HTMLElement>("[data-service-elastic]").forEach((card) => {
-      card.style.filter = "none";
-    });
-    const activeCard = servicesTrackRef.current?.querySelector<HTMLElement>(`[data-service-card="${servicesIndexRef.current}"] [data-service-elastic]`);
-    if (activeCard) {
-      const stretch = Math.min(Math.abs(dx) / 900, 0.025);
-      activeCard.style.transform = `scaleX(${1 + stretch}) skewX(${Math.sign(dx) * Math.min(Math.abs(dx) / 180, 1.1)}deg)`;
-      if (!atEdge) {
-        activeCard.style.filter = `blur(${Math.min(Math.abs(dx) / 90, 0.75)}px)`;
-      }
-    }
-  };
-
-  const finishServicesPointer = (event: React.PointerEvent<HTMLDivElement>, cancelled = false) => {
-    const drag = servicesDragRef.current;
-    if (!drag || drag.pointerId !== event.pointerId) return;
-    servicesDragRef.current = null;
-    const dx = event.clientX - drag.startX;
-    const intentionalSwipe = drag.horizontal && Math.abs(dx) >= 8;
-    const nextIndex = !cancelled && intentionalSwipe
-      ? servicesIndexRef.current + (dx < 0 ? 1 : -1)
-      : servicesIndexRef.current;
-    const elasticCards = servicesTrackRef.current?.querySelectorAll<HTMLElement>("[data-service-elastic]");
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    elasticCards?.forEach((card) => {
-      card.style.transition = prefersReducedMotion ? "none" : "transform 420ms cubic-bezier(.2,.8,.2,1), filter 320ms ease-out";
-      card.style.transform = "";
-      card.style.filter = "";
-    });
-    if (!prefersReducedMotion && elasticCards?.length) {
-      servicesMotionTimeoutRef.current = window.setTimeout(() => {
-        servicesTrackRef.current?.querySelectorAll<HTMLElement>("[data-service-elastic]").forEach((card) => {
-          card.style.transition = "";
-        });
-        servicesMotionTimeoutRef.current = null;
-      }, 450);
-    } else {
-      elasticCards?.forEach((card) => { card.style.transition = ""; });
-    }
-    settleServicesAt(nextIndex);
   };
 
   return (
@@ -1044,21 +940,13 @@ export function Sections() {
           whileInView="show"
           viewport={{ once: true, margin: "-80px" }}
           ref={servicesViewportRef}
-          onPointerDown={onServicesPointerDown}
-          onPointerMove={onServicesPointerMove}
-          onPointerUp={(event) => finishServicesPointer(event)}
-          onPointerCancel={(event) => finishServicesPointer(event, true)}
-          onKeyDown={(event) => {
-            if (event.key === "ArrowRight") settleServicesAt(servicesIndexRef.current + 1);
-            if (event.key === "ArrowLeft") settleServicesAt(servicesIndexRef.current - 1);
-          }}
+          onKeyDown={onServicesKeyDown}
           tabIndex={0}
           aria-label="Swipe horizontally to view all services"
-          className="relative z-10 -mx-5 mt-8 touch-pan-y overflow-hidden px-0 pb-4 sm:-mx-6 sm:mt-16 md:mx-0 md:overflow-visible md:p-0"
+          className="relative z-10 -mx-5 mt-8 snap-x snap-mandatory touch-pan-x overflow-x-auto px-0 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-6 sm:mt-16 md:mx-0 md:snap-none md:overflow-visible md:p-0"
         >
           <motion.div
             ref={servicesTrackRef}
-            style={{ x: servicesX }}
             className="services-carousel-track flex w-max items-stretch gap-4 md:grid md:w-full md:grid-cols-2 md:gap-6 lg:gap-8"
           >
           {BUILD_SERVICES.map((service, index) => {
@@ -1068,9 +956,9 @@ export function Sections() {
                 key={service.number}
                 variants={serviceCardVariants}
                 data-service-card={index}
-                className="group relative flex h-[27rem] w-[82vw] max-w-[24rem] shrink-0 flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-[#080a10]/45 p-6 transition-[border-color,background-color,box-shadow] duration-300 sm:w-[78vw] sm:p-8 md:h-auto md:min-h-[25rem] md:w-auto md:max-w-none md:p-10 md:backdrop-blur-xl md:hover:-translate-y-2 md:hover:border-[#C98A3D]/40 md:hover:bg-white/[0.04] md:hover:shadow-[0_20px_50px_rgba(201,138,61,0.12),0_0_20px_rgba(201,138,61,0.06)]"
+                className="group relative flex h-[27rem] w-[82vw] max-w-[24rem] shrink-0 snap-center flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-[#080a10]/45 p-6 transition-[border-color,background-color,box-shadow] duration-300 sm:w-[78vw] sm:p-8 md:h-auto md:min-h-[25rem] md:w-auto md:max-w-none md:p-10 md:backdrop-blur-xl md:hover:-translate-y-2 md:hover:border-[#C98A3D]/40 md:hover:bg-white/[0.04] md:hover:shadow-[0_20px_50px_rgba(201,138,61,0.12),0_0_20px_rgba(201,138,61,0.06)]"
               >
-                <div data-service-elastic className="relative z-10 flex h-full flex-col justify-between will-change-transform">
+                <div className="relative z-10 flex h-full flex-col justify-between">
                 {/* Top Row: Icon + Number */}
                 <div className="mb-8 flex items-start justify-between gap-4">
                   <div className="flex h-13 w-13 items-center justify-center rounded-2xl border border-[#C98A3D]/25 bg-[#C98A3D]/[0.08] text-[#C98A3D] transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 group-hover:border-[#C98A3D]/60 group-hover:bg-[#C98A3D]/20 group-hover:text-white group-hover:shadow-[0_0_20px_rgba(201,138,61,0.4)]">
