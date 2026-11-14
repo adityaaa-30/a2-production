@@ -16,7 +16,12 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   reactCompiler: true,
   poweredByHeader: false,
-  allowedDevOrigins: ["127.0.0.1", "192.168.1.105", "192.168.1.107"],
+  allowedDevOrigins: [
+    "127.0.0.1",
+    "192.168.1.105",
+    "192.168.1.107",
+    "192.168.1.109",
+  ],
   async headers() {
     return [
       {

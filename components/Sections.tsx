@@ -395,10 +395,10 @@ function FloatingParticles() {
           key={p.id}
           className="absolute rounded-full bg-[#FF7A00]"
           style={{
-            left: `${p.x}%`,
-            top: `${p.y}%`,
-            width: p.size,
-            height: p.size,
+            left: `${p.x.toFixed(5)}%`,
+            top: `${p.y.toFixed(5)}%`,
+            width: `${p.size.toFixed(5)}px`,
+            height: `${p.size.toFixed(5)}px`,
           }}
           animate={{
             y: [0, -40, 0],
@@ -501,6 +501,7 @@ function ProcessSection() {
         whileInView="show"
         viewport={{ once: true, margin: "-60px" }}
         onScroll={(event) => updateSwipeCardEffects(event.currentTarget)}
+        data-lenis-prevent-touch
         tabIndex={0}
         aria-label="Swipe horizontally to view all process steps"
         className="-mx-6 flex snap-x snap-proximity items-stretch gap-4 overflow-x-auto px-6 pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:p-0 lg:grid-cols-5 lg:gap-5"
@@ -803,6 +804,7 @@ function ContactSection() {
               <div className="absolute top-0 left-8 right-8 h-[1px] bg-gradient-to-r from-transparent via-[#FF7A00]/40 to-transparent" />
 
               <div
+                data-lenis-prevent-touch
                 tabIndex={0}
                 aria-label="Swipe horizontally to view contact options"
                 onScroll={(event) => updateSwipeCardEffects(event.currentTarget)}
@@ -941,9 +943,10 @@ export function Sections() {
           viewport={{ once: true, margin: "-80px" }}
           ref={servicesViewportRef}
           onKeyDown={onServicesKeyDown}
+          data-lenis-prevent-touch
           tabIndex={0}
           aria-label="Swipe horizontally to view all services"
-          className="relative z-10 -mx-5 mt-8 snap-x snap-mandatory touch-pan-x overflow-x-auto px-0 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-6 sm:mt-16 md:mx-0 md:snap-none md:overflow-visible md:p-0"
+          className="relative z-10 -mx-5 mt-8 snap-x snap-mandatory overflow-x-auto px-0 pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-6 sm:mt-16 md:mx-0 md:snap-none md:overflow-visible md:p-0"
         >
           <motion.div
             ref={servicesTrackRef}
@@ -1044,6 +1047,7 @@ export function Sections() {
           whileInView="show"
           viewport={{ once: true, margin: "-80px" }}
           onScroll={(event) => updateSwipeCardEffects(event.currentTarget)}
+          data-lenis-prevent-touch
           tabIndex={0}
           aria-label="Swipe horizontally to compare monthly plans"
           className="relative -mx-6 mt-10 flex snap-x snap-proximity items-stretch gap-4 overflow-x-auto px-6 pb-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:mx-0 md:mt-14 md:grid md:grid-cols-2 md:gap-5 md:overflow-visible md:p-0 xl:grid-cols-3 xl:gap-7"
